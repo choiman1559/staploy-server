@@ -1,0 +1,24 @@
+syntax = "proto3";
+package com.staploy;
+
+message Version {
+  string versionName = 1;
+  optional uint64 binarySize = 2;
+  optional bytes binaryHash = 3;
+}
+
+message AppInfo {
+  string appName = 1;
+  optional string appDescription = 2;
+}
+
+message AppInfoFetch {
+  AppInfo app = 1;
+  repeated Version appVersion = 2;
+}
+
+message InstalledAppInfo {
+  AppInfo app = 1;
+  optional Version currentVersion = 2;
+  repeated Version availableVersion = 3;
+}
