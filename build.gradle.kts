@@ -31,7 +31,7 @@ sourceSets {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.29.2"
+        artifact = "com.google.protobuf:protoc:4.34.1"
     }
 }
 
@@ -45,10 +45,11 @@ dependencies {
     implementation("io.ktor:ktor-server-netty")
     implementation("io.ktor:ktor-serialization-jackson")
 
-    implementation("com.google.protobuf:protobuf-java:4.29.3")
-    implementation("com.google.protobuf:protobuf-java-util:4.29.3")
-    implementation("org.json:json:20250107")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
+    implementation("com.google.protobuf:protobuf-java:4.34.1")
+    implementation("com.google.protobuf:protobuf-java-util:4.34.1")
+    implementation("org.json:json:20251224")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.21.2")
+    implementation("io.lettuce:lettuce-core:7.5.1.RELEASE")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
     testImplementation("io.ktor:ktor-server-test-host")

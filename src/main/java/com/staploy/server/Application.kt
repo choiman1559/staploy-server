@@ -1,16 +1,27 @@
 package com.staploy.server
 
-import com.staploy.server.modules.configureHTTP
-import com.staploy.server.modules.configureRouting
-import com.staploy.server.modules.configureSerialization
-import com.staploy.server.modules.configureSockets
+import com.staploy.server.commons.service.Argument
+import com.staploy.server.commons.service.Service
+import com.staploy.server.commons.modules.configureHTTP
+import com.staploy.server.commons.modules.configureRouting
+import com.staploy.server.commons.modules.configureSerialization
+import com.staploy.server.commons.modules.configureSockets
+
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import java.util.concurrent.TimeUnit
 
-fun main() {
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
+fun main(args: Array<String>) {
+    val argObj: Argument = Argument.buildFrom(args.toList())
+    Service.configureServiceInstance(argObj)
+
+    val server = embeddedServer(Netty, port = argObj.port, host = argObj.host, module = Application::module)
         .start(wait = true)
+    Runtime.getRuntime().addShutdownHook(Thread {
+        server.stop(1, 5, TimeUnit.SECONDS)
+    })
+    Thread.currentThread().join()
 }
 
 fun Application.module() {

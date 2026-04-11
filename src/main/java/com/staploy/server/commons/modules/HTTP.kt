@@ -1,4 +1,4 @@
-package com.staploy.server.modules
+package com.staploy.server.commons.modules
 
 import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*

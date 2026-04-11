@@ -1,0 +1,45 @@
+package com.staploy.server.commons.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.List;
+import java.util.Properties;
+
+@SuppressWarnings({"SameParameterValue", "unused"})
+public class Argument {
+
+    public int port;
+    public String host;
+    public boolean isDebug;
+    public String version;
+
+    public String redisAddress;
+    public String redisPort;
+    public String redisPassword;
+    public boolean redisUseSSL;
+
+    public static Argument buildFrom(List<String> argument) throws IOException, IllegalArgumentException {
+        if(argument.isEmpty()) {
+            throw new IllegalArgumentException("argument is not found!");
+        }
+
+        File file = new File(argument.getFirst());
+        if(file.exists() && file.canRead()) {
+            return (Argument) parsePropertiesFromFile(file.getPath(), Argument.class);
+        } else {
+            throw new FileNotFoundException("com.staploy.server.commons.service.Argument File not found or Not Accessible");
+        }
+    }
+
+    private static Object parsePropertiesFromFile(String filePath, Class<?> cls) throws IOException {
+        Properties fileProps = new Properties();
+        fileProps.load(new FileInputStream(filePath));
+
+        final ObjectMapper mapper = new ObjectMapper();
+        return mapper.convertValue(fileProps, cls);
+    }
+}

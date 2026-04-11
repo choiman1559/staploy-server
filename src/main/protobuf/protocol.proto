@@ -8,7 +8,7 @@ enum ProtocolProcedure {
   PROCEDURE_CANCEL_TASK = 3;
 
   PROCEDURE_REQUEST_APP_INFO = 4;
-  PROCEDURE_PUSH_APP_BINARY = 5; // Reserved, But no used by protobuf parser (Via raw message for binary)
+  PROCEDURE_PUSH_APP_BINARY = 5; // Reserved, But no used by protobuf parser (Via http file request header)
   PROCEDURE_ADD_APP_VERSION = 6;
   PROCEDURE_SET_APP_VERSION = 7;
   PROCEDURE_DELETE_APP_VERSION = 8;

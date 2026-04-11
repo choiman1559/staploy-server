@@ -1,4 +1,4 @@
-package com.staploy.server.modules
+package com.staploy.server.commons.modules
 
 import com.fasterxml.jackson.databind.*
 import io.ktor.serialization.jackson.*
