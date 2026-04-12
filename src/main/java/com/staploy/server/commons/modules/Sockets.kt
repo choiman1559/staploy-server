@@ -49,6 +49,7 @@ fun Application.configureSockets() {
                     CoroutineScope(Dispatchers.IO).launch {
                         Log.printDebug(LOG_TAG, "Disconnected: $socketSession")
                         WebSocketUtil.getSocketDisconnectListener(socketSession)?.onDisconnect()
+                        WebSocketUtil.cleanUpSocket(socketSession)
                     }
                 } catch (e: Exception) {
                     WebSocketUtil.closeWebSocket(

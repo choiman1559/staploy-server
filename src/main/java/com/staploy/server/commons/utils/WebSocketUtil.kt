@@ -30,6 +30,11 @@ class WebSocketUtil {
             return this.onSocketDisconnectListener[webSocketServerSession]
         }
 
+        fun cleanUpSocket(webSocketServerSession: DefaultWebSocketServerSession) {
+            removeOnDataIncomeSocket(webSocketServerSession)
+            removeOnDisconnectSocket(webSocketServerSession)
+        }
+
         @JvmStatic
         fun registerOnDataIncomeSocket(
             webSocketServerSession: DefaultWebSocketServerSession,
@@ -79,8 +84,7 @@ class WebSocketUtil {
             message: String
         ) {
             runBlocking {
-                removeOnDataIncomeSocket(socketServerSession)
-                removeOnDisconnectSocket(socketServerSession)
+                cleanUpSocket(socketServerSession)
                 socketServerSession.close(CloseReason(closeReason, message))
             }
         }

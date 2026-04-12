@@ -3,7 +3,7 @@ val logbackVersion: String by project
 
 plugins {
     kotlin("jvm") version "2.2.21"
-    id("io.ktor.plugin") version "3.3.2"
+    id("io.ktor.plugin") version "3.4.2"
     id("com.google.protobuf") version "0.9.4"
 }
 
@@ -51,6 +51,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.21.2")
     implementation("io.lettuce:lettuce-core:7.5.1.RELEASE")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
+    implementation("io.ktor:ktor-server-default-headers:3.4.2")
 
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
