@@ -1,12 +1,20 @@
-package com.staploy.server.commons.packet;
+package com.staploy.server.packet;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.staploy.Admin;
+import com.staploy.App;
+import com.staploy.Protocol;
+import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.service.ServiceConsts;
 import io.ktor.http.HttpStatusCode;
 import org.jetbrains.annotations.Nullable;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Random;
+import java.util.random.RandomGenerator;
 
 public class PacketWrapper {
     private HttpStatusCode statusCode;
@@ -72,5 +80,26 @@ public class PacketWrapper {
 
         packetWrapper.setResponsePacket(responseBuilder.build());
         return packetWrapper;
+    }
+
+    public static Protocol.Packet.Builder createNewPacket(Protocol.ProtocolProcedure protocolProcedure, Protocol.ActionProcedure actionProcedure) {
+        Protocol.Packet.Builder packetBuilder = Protocol.Packet.newBuilder();
+        packetBuilder.setExtraData(ByteString.copyFrom(Service.getInstance().getServerUUID().getBytes(StandardCharsets.UTF_8)));
+        packetBuilder.setProcedure(protocolProcedure);
+        packetBuilder.setActionProcedure(actionProcedure);
+        packetBuilder.setChallengeCode(String.format("%d_%d_%d",
+                protocolProcedure.getNumber(),
+                actionProcedure.getNumber(),
+                Random.from(RandomGenerator.getDefault()).nextInt()));
+        return packetBuilder;
+    }
+
+    public static Protocol.ServerPacket.Builder createNewServerPacket(Protocol.Packet packet, @Nullable List<App.AppInfoFetch> appInfoFetch) {
+        Protocol.ServerPacket.Builder packetBuilder = Protocol.ServerPacket.newBuilder();
+        packetBuilder.setPacketInfo(packet);
+        if(appInfoFetch != null) {
+            packetBuilder.addAllAppInfoFetch(appInfoFetch);
+        }
+        return packetBuilder;
     }
 }

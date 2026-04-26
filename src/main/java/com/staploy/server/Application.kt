@@ -20,6 +20,7 @@ fun main(args: Array<String>) {
         .start(wait = true)
     Runtime.getRuntime().addShutdownHook(Thread {
         server.stop(1, 5, TimeUnit.SECONDS)
+        Service.getInstance().invokeDetacheStaticModules()
     })
     Thread.currentThread().join()
 }

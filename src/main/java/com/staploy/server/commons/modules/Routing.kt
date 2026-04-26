@@ -1,6 +1,6 @@
 package com.staploy.server.commons.modules
 
-import com.staploy.server.commons.packet.PacketWrapper
+import com.staploy.server.packet.PacketWrapper
 import com.staploy.server.commons.service.Service
 import com.staploy.server.commons.service.ServiceConsts
 import com.staploy.server.commons.utils.Log

@@ -1,4 +1,4 @@
-package com.staploy.server.commons.packet;
+package com.staploy.server.packet;
 
 import io.ktor.server.application.ApplicationCall;
 import io.ktor.server.websocket.DefaultWebSocketServerSession;

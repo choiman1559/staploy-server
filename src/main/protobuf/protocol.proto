@@ -4,31 +4,38 @@ import "app.proto";
 
 enum ProtocolProcedure {
   PROCEDURE_SERVER_HELLO = 0;
+  PROCEDURE_REQUEST_TASK = 1;
   PROCEDURE_CHECK_TASK = 2;
   PROCEDURE_CANCEL_TASK = 3;
+}
 
-  PROCEDURE_REQUEST_APP_INFO = 4;
-  PROCEDURE_PUSH_APP_BINARY = 5; // Reserved, But no used by protobuf parser (Via http file request header)
-  PROCEDURE_ADD_APP_VERSION = 6;
-  PROCEDURE_SET_APP_VERSION = 7;
-  PROCEDURE_DELETE_APP_VERSION = 8;
-  PROCEDURE_EXECUTE_SHELL = 9;
+enum ActionProcedure {
+  PROCEDURE_NONE = 0;
+  PROCEDURE_REQUEST_WORKER_INFO = 1;
+  PROCEDURE_REQUEST_APP_INFO = 2;
+
+  PROCEDURE_PUSH_APP_BINARY = 3; // Reserved, But no used by protobuf parser (Via http file request header)
+  PROCEDURE_ADD_APP_VERSION = 4;
+  PROCEDURE_SET_APP_VERSION = 5;
+  PROCEDURE_DELETE_APP_VERSION = 6;
+  PROCEDURE_EXECUTE_SHELL = 7;
 }
 
 enum CpuArch {
-    i386 = 0;
-    x86_64 = 1;
-    arm = 2;
-    aarch64 = 3;
-    riscv32 = 4;
-    riscv64 = 5;
-    mipsel = 6;
-    mips64el = 7;
+  i386 = 0;
+  x86_64 = 1;
+  arm = 2;
+  aarch64 = 3;
+  riscv32 = 4;
+  riscv64 = 5;
+  mipsel = 6;
+  mips64el = 7;
 }
 
 message Packet {
   ProtocolProcedure procedure = 1;
   string challengeCode = 2;
+  optional ActionProcedure actionProcedure = 3;
   optional bytes extraData = 4;
 }
 
@@ -37,21 +44,21 @@ message ServerPacket {
   repeated AppInfoFetch appInfoFetch = 2;
 }
 
-message ClientPacket {
+message WorkerPacket {
   Packet packetInfo = 1;
   optional Result taskResult = 2;
-  optional ClientInfo clientInfo = 3;
+  optional WorkerInfo workerInfo = 3;
 }
 
-message ClientInfo {
-  string clientId = 1;
+message WorkerInfo {
+  string workerId = 1;
+
   optional CpuArch cpuArch = 2;
-
   optional string binLocation = 3;
-  repeated InstalledAppInfo installedApp = 4;
+  optional sint64 cpuCoreCount = 4;
+  optional sint64 memoryInBytes = 5;
 
-  optional sint64 cpuCoreCount = 5;
-  optional sint64 memoryInBytes = 6;
+  repeated InstalledAppInfo installedApp = 6;
 }
 
 message Result {

@@ -1,0 +1,64 @@
+package com.staploy.server.commons.utils;
+
+import kotlinx.io.Buffer;
+import kotlinx.io.BuffersJvmKt;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+
+@SuppressWarnings({"UnusedReturnValue", "unused"})
+public class IOUtils {
+    public static boolean createNewFile(File destFile) throws IOException {
+        return (destFile.exists() & destFile.delete()) & destFile.createNewFile();
+    }
+
+    public static byte[] readFromBytes(File dest) throws IOException {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             Buffer fileBuffer = new Buffer();
+             FileInputStream fileInputStream = new FileInputStream(dest)) {
+
+            BuffersJvmKt.readTo(BuffersJvmKt.transferFrom(fileBuffer, fileInputStream), outputStream, dest.length());
+            return outputStream.toByteArray();
+        }
+    }
+
+    public static String readFrom(File dest) throws IOException {
+       return new String(readFromBytes(dest));
+    }
+
+    public static void writeTo(File dest, String data) throws IOException {
+        writeTo(dest, data, false);
+    }
+
+    public static void writeTo(File dest, String data, boolean overwriteExists) throws IOException {
+        byte[] dataArray = data.getBytes(StandardCharsets.UTF_8);
+        writeTo(dest, dataArray, overwriteExists);
+    }
+
+    public static void writeTo(File dest, byte[] data) throws IOException {
+        writeTo(dest, data, false);
+    }
+
+    public static void writeTo(File dest, byte[] data, boolean overwriteExists) throws IOException {
+        if (overwriteExists) {
+            createNewFile(dest);
+        }
+
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
+             Buffer fileBuffer = new Buffer();
+             FileOutputStream fileOutputStream = new FileOutputStream(dest)) {
+
+            BuffersJvmKt.readTo(BuffersJvmKt.transferFrom(fileBuffer, inputStream), fileOutputStream, data.length);
+        }
+    }
+
+    public static boolean deleteRecursively(File target) throws SecurityException {
+        if (!target.isFile()) {
+            for (File innerFile : Objects.requireNonNullElse(target.listFiles(), new File[]{})) {
+                deleteRecursively(innerFile);
+            }
+        }
+        return target.delete();
+    }
+}

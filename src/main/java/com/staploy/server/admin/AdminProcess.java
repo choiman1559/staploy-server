@@ -1,6 +1,6 @@
-package com.staploy.server.routing;
+package com.staploy.server.admin;
 
-import com.staploy.server.commons.packet.PacketProcessModel;
+import com.staploy.server.packet.PacketProcessModel;
 import io.ktor.server.application.ApplicationCall;
 import io.ktor.server.websocket.DefaultWebSocketServerSession;
 

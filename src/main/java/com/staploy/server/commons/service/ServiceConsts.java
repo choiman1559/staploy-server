@@ -3,7 +3,9 @@ package com.staploy.server.commons.service;
 public class ServiceConsts {
     public final static String API_ROUTE_SCHEMA = "/api/{version}/{connection_type}";
     public final static String CONN_TYPE_ADMIN = "admin";
-    public final static String CONN_TYPE_NODE = "node";
+    public final static String CONN_TYPE_WORKER = "worker";
+    public final static String PATH_UUID_STORE_CONF = "/.STAPLOY_UUID";
+    public final static String UUID_CONF_WARNING = "### UUID KEY FOR STAPLOY SERVER, DO NOT EDIT OR DELETE THIS FILE AT YOUR OWN ###\n";
 
     public final static String STATUS_ERROR = "error";
     public final static String STATUS_OK = "ok";
