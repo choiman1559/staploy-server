@@ -6,6 +6,7 @@ import com.staploy.server.commons.modules.configureHTTP
 import com.staploy.server.commons.modules.configureRouting
 import com.staploy.server.commons.modules.configureSerialization
 import com.staploy.server.commons.modules.configureSockets
+import com.staploy.server.commons.service.Helpers
 
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -20,7 +21,7 @@ fun main(args: Array<String>) {
         .start(wait = true)
     Runtime.getRuntime().addShutdownHook(Thread {
         server.stop(1, 5, TimeUnit.SECONDS)
-        Service.getInstance().invokeDetacheStaticModules()
+        Helpers.invokeOnDead()
     })
     Thread.currentThread().join()
 }

@@ -61,7 +61,6 @@ public class WorkerProcess implements PacketProcessModel {
             ReceivePacketBundle receivePacketBundle = new ReceivePacketBundle(applicationCall, socketServerSession, workerPacket);
             routePacket(receivePacketBundle);
         } catch (IOException e) {
-            e.printStackTrace();
             Log.print(LogTAG, String.format("Error: Cannot parse from raw data (%d)", Arrays.hashCode(data)));
         }
     }
@@ -77,6 +76,7 @@ public class WorkerProcess implements PacketProcessModel {
             case PROCEDURE_SERVER_HELLO -> {
                 if(workerSessionInfo != null && packetBundle.workerPacket.hasWorkerInfo()) {
                     workerSessionInfo.registerWorker(packetBundle.workerPacket.getWorkerInfo());
+                    Log.printDebug(LogTAG, "Registered new device: " + packetBundle.workerPacket.getWorkerInfo().getWorkerId());
                 } else {
                     Log.printDebug(LogTAG, "Receiving empty ACK packet, checking already registered worker");
                     workerSessionInfo = WorkerManager.createWorkerSessionInfo(packetBundle.workerPacket.getWorkerInfo());

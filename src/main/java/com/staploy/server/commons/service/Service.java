@@ -3,7 +3,6 @@ package com.staploy.server.commons.service;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.staploy.server.commons.utils.IOUtils;
 import com.staploy.server.commons.utils.Log;
-import com.staploy.server.commons.utils.PersistsHelper;
 import com.staploy.server.packet.PacketProcessModel;
 import com.staploy.server.packet.PacketWrapper;
 import com.staploy.server.admin.AdminProcess;
@@ -14,7 +13,6 @@ import io.ktor.server.websocket.DefaultWebSocketServerSession;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -25,7 +23,7 @@ public class Service {
     private String serverUUID;
     private final Argument argument;
     public HashMap<String, PacketProcessModel> processModels;
-    public ArrayList<InitHelperModule> initHelperModules;
+    public Helpers initHelperModules;
 
     public interface onPacketProcessReplyReceiver {
         void onPacketReply(ApplicationCall call, HttpStatusCode code, String data);
@@ -49,27 +47,7 @@ public class Service {
     }
 
     private void configureStaticModules() {
-        initHelperModules = new ArrayList<>();
-        ArrayList<Class<?>> classArrayList = new ArrayList<>();
-        classArrayList.add(WorkerProcess.class);
-        classArrayList.add(PersistsHelper.class);
-
-        try {
-            for(Class<?> moduleCls : classArrayList) {
-                InitHelperModule module = (InitHelperModule)moduleCls.getDeclaredConstructor().newInstance();
-                initHelperModules.add(module);
-                module.onServiceAttache();
-            }
-        } catch (Exception _) {
-            // unreachable exception
-        }
-    }
-
-    public void invokeDetacheStaticModules() {
-        Log.printDebug(LogTAG, "Service SIGINT interrupted... Invoking service detach!");
-        for(InitHelperModule module : initHelperModules) {
-            module.onServiceDetache();
-        }
+        initHelperModules = Helpers.getInstance();
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")

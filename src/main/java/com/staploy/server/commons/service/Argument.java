@@ -19,7 +19,7 @@ public class Argument {
     public String baseDir;
 
     public String redisAddress;
-    public String redisPort;
+    public int redisPort;
     public String redisPassword;
     public boolean redisUseSSL;
 

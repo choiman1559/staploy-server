@@ -10,18 +10,20 @@ import io.lettuce.core.api.sync.RedisCommands;
 
 public class PersistsHelper implements InitHelperModule {
 
-    private static PersistsHelper persistsHelper;
-    private RedisClient redisClient;
-    private StatefulRedisConnection<String, String> redisConnection;
-    private RedisCommands<String, String> redisCommands;
+    private final RedisClient redisClient;
+    private final StatefulRedisConnection<String, String> redisConnection;
+    private final RedisCommands<String, String> redisCommands;
 
     public PersistsHelper() {
-        // Default constructor for classloader
-    }
-
-    public static PersistsHelper getInstance() {
-        if(persistsHelper == null) persistsHelper = new PersistsHelper();
-        return persistsHelper;
+        Argument argument = Service.getInstance().getArgument();
+        redisClient = RedisClient.create();
+        redisConnection = redisClient.connect(RedisURI.builder()
+                .withHost(argument.redisAddress)
+                .withPort(argument.redisPort)
+                .withPassword(argument.redisPassword)
+                .withSsl(argument.redisUseSSL)
+                .build());
+        redisCommands = redisConnection.sync();
     }
 
     public RedisClient getRedisClient() {
@@ -38,21 +40,12 @@ public class PersistsHelper implements InitHelperModule {
 
     @Override
     public void onServiceAttache() {
-        PersistsHelper persistsHelper = getInstance();
-        Argument argument = Service.getInstance().getArgument();
-        persistsHelper.redisClient = RedisClient.create();
-        persistsHelper.redisConnection = persistsHelper.redisClient.connect(RedisURI.builder()
-                        .withHost(argument.redisAddress)
-                        .withPort(argument.port)
-                        .withPassword(argument.redisPassword)
-                        .withSsl(argument.redisUseSSL)
-                .build());
-        persistsHelper.redisCommands = persistsHelper.redisConnection.sync();
+
     }
 
     @Override
     public void onServiceDetache() {
-        getInstance().redisConnection.close();
-        getInstance().redisClient.shutdown();
+        redisConnection.close();
+        redisClient.shutdown();
     }
 }

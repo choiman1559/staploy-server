@@ -1,6 +1,7 @@
 package com.staploy.server.worker;
 
 import com.staploy.Protocol;
+import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.InitHelperModule;
 import org.jetbrains.annotations.Nullable;
 
@@ -9,9 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WorkerManager implements InitHelperModule {
 
     private final static String LogTAG = "WorkerManager";
-    private volatile static WorkerManager instance;
-
-    private ConcurrentHashMap<String, Protocol.WorkerInfo> activeSessionWorker;
+    private final ConcurrentHashMap<String, Protocol.WorkerInfo> activeSessionWorker;
 
     public static class WorkerSessionInfo {
 
@@ -29,7 +28,7 @@ public class WorkerManager implements InitHelperModule {
 
         @Nullable
         public Protocol.WorkerInfo getWorkerInfo(boolean fromPersists) {
-            return WorkerManager.getInstance().getWorkerInfo(this, fromPersists);
+            return getWorkerManager().getWorkerInfo(this, fromPersists);
         }
 
         public String getWorkerUUID() {
@@ -41,29 +40,28 @@ public class WorkerManager implements InitHelperModule {
         }
 
         public boolean isActive() {
-            return WorkerManager.getInstance().hasActiveWorker(this);
+            return getWorkerManager().hasActiveWorker(this);
         }
 
         public boolean isRegistered() {
-            return WorkerManager.getInstance().hasPersistsWorker(this);
+            return isActive() || getWorkerManager().hasPersistsWorker(this);
         }
 
         public void registerWorker(Protocol.WorkerInfo workerInfo) {
-            WorkerManager.getInstance().updateWorkerInfo(this, workerInfo, true, true);
+            getWorkerManager().updateWorkerInfo(this, workerInfo, true, true);
         }
 
         public void setDeactivated() {
-            WorkerManager.getInstance().removeActiveWorker(this);
+            getWorkerManager().removeActiveWorker(this);
+        }
+
+        private WorkerManager getWorkerManager() {
+            return Helpers.getWorkerManager();
         }
     }
 
     public WorkerManager() {
-        // Default constructor for classloader
-    }
-
-    public static WorkerManager getInstance() {
-        if(instance == null) instance = new WorkerManager();
-        return instance;
+        activeSessionWorker = new ConcurrentHashMap<>();
     }
 
     public static WorkerSessionInfo createWorkerSessionInfo(Protocol.WorkerInfo workerInfo) {
@@ -72,7 +70,7 @@ public class WorkerManager implements InitHelperModule {
 
     public void updateWorkerInfo(WorkerSessionInfo workerInfo, Protocol.WorkerInfo workerInfoData, boolean updateFullInfo, boolean updatePersists) {
         if(updateFullInfo || !hasActiveWorker(workerInfo)) {
-            activeSessionWorker.put(workerInfo.getWorkerUUID(), workerInfo.getWorkerInfo());
+            activeSessionWorker.put(workerInfo.getWorkerUUID(), workerInfoData);
         }
 
         if(updatePersists) {
@@ -116,8 +114,7 @@ public class WorkerManager implements InitHelperModule {
 
     @Override
     public void onServiceAttache() {
-        WorkerManager workerManager = getInstance();
-        workerManager.activeSessionWorker = new ConcurrentHashMap<>();
+
     }
 
     @Override
