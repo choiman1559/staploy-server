@@ -9,7 +9,11 @@ import java.util.Objects;
 
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class IOUtils {
-    public static boolean createNewFile(File destFile) throws IOException {
+
+    public static boolean createNewFile(File destFile, boolean recursively) throws IOException {
+        if(recursively && !destFile.getParentFile().exists() && !destFile.getParentFile().mkdirs()) {
+            return false;
+        }
         return (destFile.exists() & destFile.delete()) & destFile.createNewFile();
     }
 
@@ -42,7 +46,7 @@ public class IOUtils {
 
     public static void writeTo(File dest, byte[] data, boolean overwriteExists) throws IOException {
         if (overwriteExists) {
-            createNewFile(dest);
+            createNewFile(dest, false);
         }
 
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data);

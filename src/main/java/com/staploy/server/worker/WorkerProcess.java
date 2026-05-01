@@ -7,16 +7,19 @@ import com.staploy.server.packet.PacketProcessModel;
 import com.staploy.server.commons.utils.Log;
 import com.staploy.server.commons.utils.WebSocketUtil;
 import com.staploy.server.packet.PacketWrapper;
+
 import io.ktor.server.application.ApplicationCall;
 import io.ktor.server.websocket.DefaultWebSocketServerSession;
 import io.ktor.websocket.CloseReason;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WorkerProcess implements PacketProcessModel {
 
     private static final String LogTAG = "WorkerProcess";
+    public static final ConcurrentHashMap<String, DefaultWebSocketServerSession> workerSocketSession = new ConcurrentHashMap<>();
     private WorkerManager.WorkerSessionInfo workerSessionInfo;
 
     private record ReceivePacketBundle(
@@ -40,6 +43,9 @@ public class WorkerProcess implements PacketProcessModel {
         });
 
         WebSocketUtil.registerOnDisconnectSocket(socketServerSession, () -> {
+            if(workerSessionInfo != null && !workerSessionInfo.getWorkerUUID().isEmpty()) {
+                workerSocketSession.remove(workerSessionInfo.getWorkerUUID());
+            }
             if(workerSessionInfo != null && workerSessionInfo.isActive()) {
                 workerSessionInfo.setDeactivated();
                 workerSessionInfo = null;
@@ -77,6 +83,7 @@ public class WorkerProcess implements PacketProcessModel {
                 if(workerSessionInfo != null && packetBundle.workerPacket.hasWorkerInfo()) {
                     workerSessionInfo.registerWorker(packetBundle.workerPacket.getWorkerInfo());
                     Log.printDebug(LogTAG, "Registered new device: " + packetBundle.workerPacket.getWorkerInfo().getWorkerId());
+                    finalizeHandshake(packetBundle);
                 } else {
                     Log.printDebug(LogTAG, "Receiving empty ACK packet, checking already registered worker");
                     workerSessionInfo = WorkerManager.createWorkerSessionInfo(packetBundle.workerPacket.getWorkerInfo());
@@ -89,8 +96,10 @@ public class WorkerProcess implements PacketProcessModel {
                         Protocol.WorkerInfo workerInfo = workerSessionInfo.getWorkerInfo(true);
                         try {
                             Log.printDebug(LogTAG, "Handshake completed: " + JsonFormat.printer().print(workerInfo));
+                            finalizeHandshake(packetBundle);
                         } catch (InvalidProtocolBufferException e) {
                             Log.printDebug(LogTAG, "Handshake completed but message not decoded...");
+                            WebSocketUtil.closeWebSocket(packetBundle.socketServerSession, CloseReason.Codes.INTERNAL_ERROR, "");
                         }
                     } else {
                         Log.printDebug(LogTAG, "Non-data for this worker, Requesting full-worker info for new registration");
@@ -118,5 +127,13 @@ public class WorkerProcess implements PacketProcessModel {
 
             }
         }
+    }
+
+    private void finalizeHandshake(ReceivePacketBundle receivePacketBundle) {
+        workerSocketSession.put(workerSessionInfo.getWorkerUUID(), receivePacketBundle.socketServerSession);
+        WebSocketUtil.replyWebSocket(receivePacketBundle.socketServerSession, PacketWrapper.createNewServerPacket(
+                PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_SERVER_HELLO, Protocol.ActionProcedure.PROCEDURE_ACK).build(),
+                null
+        ).build().toByteArray());
     }
 }

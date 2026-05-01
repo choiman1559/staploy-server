@@ -98,7 +98,7 @@ public class Service {
         PacketProcessModel packetProcessModel = instance.processModels.get(connectionType);
 
         if (rawData == null || rawData.isEmpty()) {
-            Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("HTTP Request body is null", HttpStatusCode.Companion.getNoContent()));
+            Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("HTTP Request body is null", HttpStatusCode.Companion.getNoContent(), ""));
         } else if (packetProcessModel != null) {
             packetProcessModel.onPacketReceived(applicationCall, connectionType, rawData);
         }

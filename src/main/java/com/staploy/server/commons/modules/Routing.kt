@@ -1,5 +1,6 @@
 package com.staploy.server.commons.modules
 
+import com.staploy.server.commons.blobs.FileProcess
 import com.staploy.server.packet.PacketWrapper
 import com.staploy.server.commons.service.Service
 import com.staploy.server.commons.service.ServiceConsts
@@ -15,8 +16,22 @@ suspend fun doProcessPacket(call: ApplicationCall) {
     if (call.parameters["version"] == "v1") {
         val connectionType: String = call.parameters["connection_type"].toString()
         try {
+            if(call.request.headers.contains(ServiceConsts.BLOB_REQ_TYPE)) {
+                when(call.request.headers[ServiceConsts.BLOB_REQ_TYPE]) {
+                    ServiceConsts.BLOB_REQ_TYPE_UPLOAD -> {
+                        Log.printDebug(LOG_TAG, "BLOB_UPLOAD")
+                        FileProcess.onReceiveMultiPart(call)
+                    }
+                    ServiceConsts.BLOB_REQ_TYPE_DOWNLOAD -> {
+                        Log.printDebug(LOG_TAG, "BLOB_DOWNLOAD")
+                        FileProcess.onRequestDownload(call)
+                    }
+                }
+                return
+            }
             Service.invokeProcessPacket(call, connectionType, call.receiveText())
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            e.printStackTrace()
             Service.replyPacket(
                 call, PacketWrapper.makeErrorPacket(
                     ServiceConsts.ERROR_CONN_TYPE_NOT_FOUND

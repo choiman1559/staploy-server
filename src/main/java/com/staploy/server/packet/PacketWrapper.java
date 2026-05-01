@@ -40,43 +40,35 @@ public class PacketWrapper {
         return JsonFormat.printer().print(getResponsePacket());
     }
 
-    public static PacketWrapper makePacket(byte[]... extra_data) {
+    public static PacketWrapper makePacket(String extra_data) {
         PacketWrapper packetWrapper = new PacketWrapper();
         packetWrapper.setStatusCode(HttpStatusCode.Companion.getOK());
 
         Admin.ResponsePacket.Builder responseBuilder = Admin.ResponsePacket.newBuilder();
         responseBuilder.setStatus(ServiceConsts.STATUS_OK);
         responseBuilder.setErrorCause(ServiceConsts.ERROR_NONE);
-
-        for (byte[] extraDatum : extra_data) {
-            responseBuilder.addExtraData(ByteString.copyFrom(extraDatum));
-        }
+        responseBuilder.setExtraData(extra_data);
 
         packetWrapper.setResponsePacket(responseBuilder.build());
         return packetWrapper;
     }
 
     public static PacketWrapper makeErrorPacket(String message) {
-        return makeErrorPacket(message, new byte[][]{});
+        return makeErrorPacket(message, "");
     }
 
-    public static PacketWrapper makeErrorPacket(String message, byte[] @Nullable ... extraDescription) {
+    public static PacketWrapper makeErrorPacket(String message, String extraDescription) {
         return makeErrorPacket(message, HttpStatusCode.Companion.getInternalServerError(), extraDescription);
     }
 
-    public static PacketWrapper makeErrorPacket(String message, HttpStatusCode statusCode, byte[] @Nullable ... extraDescription) {
+    public static PacketWrapper makeErrorPacket(String message, HttpStatusCode statusCode, String extraDescription) {
         PacketWrapper packetWrapper = new PacketWrapper();
         packetWrapper.setStatusCode(statusCode);
 
         Admin.ResponsePacket.Builder responseBuilder = Admin.ResponsePacket.newBuilder();
         responseBuilder.setStatus(ServiceConsts.STATUS_ERROR);
         responseBuilder.setErrorCause(message);
-
-        if(extraDescription != null) for (byte[] extraDatum : extraDescription) {
-            if(extraDatum != null) {
-                responseBuilder.addExtraData(ByteString.copyFrom(extraDatum));
-            }
-        }
+        responseBuilder.setExtraData(extraDescription);
 
         packetWrapper.setResponsePacket(responseBuilder.build());
         return packetWrapper;

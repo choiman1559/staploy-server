@@ -1,5 +1,6 @@
 package com.staploy.server.commons.service;
 
+import com.staploy.server.commons.blobs.FileRouteManager;
 import com.staploy.server.commons.utils.PersistsHelper;
 import com.staploy.server.worker.WorkerManager;
 
@@ -8,16 +9,20 @@ import java.util.ArrayList;
 public class Helpers {
     private static Helpers helpers;
     private final ArrayList<InitHelperModule> initHelperModules;
+
     private final PersistsHelper persistsHelper;
     private final WorkerManager workerManager;
+    private final FileRouteManager fileRouteManager;
 
     private Helpers() {
         initHelperModules = new ArrayList<>();
         persistsHelper = new PersistsHelper();
         workerManager = new WorkerManager();
+        fileRouteManager = new FileRouteManager();
 
         initHelperModules.add(persistsHelper);
         initHelperModules.add(workerManager);
+        initHelperModules.add(fileRouteManager);
     }
 
     public static Helpers getInstance() {
@@ -31,6 +36,10 @@ public class Helpers {
 
     public static WorkerManager getWorkerManager() {
         return getInstance().workerManager;
+    }
+
+    public static FileRouteManager getFileRouteManager() {
+        return getInstance().fileRouteManager;
     }
 
     public static void invokeOnLoad() {

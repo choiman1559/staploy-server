@@ -3,6 +3,9 @@ package com.staploy.server.worker;
 import com.staploy.Protocol;
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.InitHelperModule;
+import com.staploy.server.commons.utils.WebSocketUtil;
+import io.ktor.server.websocket.DefaultWebSocketServerSession;
+import io.ktor.websocket.CloseReason;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -80,6 +83,12 @@ public class WorkerManager implements InitHelperModule {
 
     public void removeActiveWorker(WorkerSessionInfo workerSessionInfo) {
         activeSessionWorker.remove(workerSessionInfo.getWorkerUUID());
+        if(WorkerProcess.workerSocketSession.containsKey(workerSessionInfo.getWorkerUUID())) {
+            DefaultWebSocketServerSession webSocketServerSession = WorkerProcess.workerSocketSession.get(workerSessionInfo.getWorkerUUID());
+            if(WebSocketUtil.isSocketActive(webSocketServerSession)) {
+                WebSocketUtil.closeWebSocket(webSocketServerSession, CloseReason.Codes.NORMAL, "Closed by request");
+            }
+        }
     }
 
     private boolean hasActiveWorker(WorkerSessionInfo workerInfo) {

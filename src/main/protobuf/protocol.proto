@@ -11,14 +11,15 @@ enum ProtocolProcedure {
 
 enum ActionProcedure {
   PROCEDURE_NONE = 0;
-  PROCEDURE_REQUEST_WORKER_INFO = 1;
-  PROCEDURE_REQUEST_APP_INFO = 2;
+  PROCEDURE_ACK = 1;
+  PROCEDURE_REQUEST_WORKER_INFO = 2;
+  PROCEDURE_REQUEST_APP_INFO = 3;
 
-  PROCEDURE_PUSH_APP_BINARY = 3; // Reserved, But no used by protobuf parser (Via http file request header)
-  PROCEDURE_ADD_APP_VERSION = 4;
-  PROCEDURE_SET_APP_VERSION = 5;
-  PROCEDURE_DELETE_APP_VERSION = 6;
-  PROCEDURE_EXECUTE_SHELL = 7;
+  PROCEDURE_PUSH_APP_BINARY = 10; // Reserved, But no used by protobuf parser (Via http file request header)
+  PROCEDURE_ADD_APP_VERSION = 11;
+  PROCEDURE_SET_APP_VERSION = 12;
+  PROCEDURE_DELETE_APP_VERSION = 13;
+  PROCEDURE_EXECUTE_SHELL = 14;
 }
 
 enum CpuArch {
