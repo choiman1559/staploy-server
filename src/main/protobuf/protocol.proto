@@ -23,14 +23,15 @@ enum ActionProcedure {
 }
 
 enum CpuArch {
-  i386 = 0;
-  x86_64 = 1;
-  arm = 2;
-  aarch64 = 3;
-  riscv32 = 4;
-  riscv64 = 5;
-  mipsel = 6;
-  mips64el = 7;
+  UNKNOWN = 0;
+  i386 = 1;
+  x86_64 = 2;
+  arm = 3;
+  aarch64 = 4;
+  riscv32 = 5;
+  riscv64 = 6;
+  mipsel = 7;
+  mips64el = 8;
 }
 
 message Packet {
@@ -53,13 +54,14 @@ message WorkerPacket {
 
 message WorkerInfo {
   string workerId = 1;
+  string workerName = 2;
 
-  optional CpuArch cpuArch = 2;
-  optional string binLocation = 3;
-  optional sint64 cpuCoreCount = 4;
-  optional sint64 memoryInBytes = 5;
+  optional CpuArch cpuArch = 3;
+  optional string binLocation = 4;
+  optional sint64 cpuCoreCount = 5;
+  optional sint64 memoryInBytes = 6;
 
-  repeated InstalledAppInfo installedApp = 6;
+  repeated InstalledAppInfo installedApp = 7;
 }
 
 message Result {

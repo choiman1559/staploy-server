@@ -14,6 +14,7 @@ public class WorkerManager implements InitHelperModule {
 
     private final static String LogTAG = "WorkerManager";
     private final ConcurrentHashMap<String, Protocol.WorkerInfo> activeSessionWorker;
+    private final ConcurrentHashMap<DefaultWebSocketServerSession, WorkerManager.WorkerSessionInfo> workerSessionInfos;
 
     public static class WorkerSessionInfo {
 
@@ -65,6 +66,7 @@ public class WorkerManager implements InitHelperModule {
 
     public WorkerManager() {
         activeSessionWorker = new ConcurrentHashMap<>();
+        workerSessionInfos = new ConcurrentHashMap<>();
     }
 
     public static WorkerSessionInfo createWorkerSessionInfo(Protocol.WorkerInfo workerInfo) {
@@ -83,12 +85,6 @@ public class WorkerManager implements InitHelperModule {
 
     public void removeActiveWorker(WorkerSessionInfo workerSessionInfo) {
         activeSessionWorker.remove(workerSessionInfo.getWorkerUUID());
-        if(WorkerProcess.workerSocketSession.containsKey(workerSessionInfo.getWorkerUUID())) {
-            DefaultWebSocketServerSession webSocketServerSession = WorkerProcess.workerSocketSession.get(workerSessionInfo.getWorkerUUID());
-            if(WebSocketUtil.isSocketActive(webSocketServerSession)) {
-                WebSocketUtil.closeWebSocket(webSocketServerSession, CloseReason.Codes.NORMAL, "Closed by request");
-            }
-        }
     }
 
     private boolean hasActiveWorker(WorkerSessionInfo workerInfo) {
@@ -100,6 +96,28 @@ public class WorkerManager implements InitHelperModule {
             return workerInfo.getWorkerPersists().getWorkerInfo() != null;
         } catch (Exception _) {
             return false;
+        }
+    }
+
+    @Nullable
+    public WorkerSessionInfo getWorkerSession(DefaultWebSocketServerSession webSocketServerSession) {
+        return workerSessionInfos.get(webSocketServerSession);
+    }
+
+    public WorkerSessionInfo registerNewSession(DefaultWebSocketServerSession webSocketServerSession, Protocol.WorkerInfo workerInfo) {
+        WorkerSessionInfo workerSessionInfo = createWorkerSessionInfo(workerInfo);
+        workerSessionInfos.put(webSocketServerSession, workerSessionInfo);
+        return workerSessionInfo;
+    }
+
+    public void detachWorkerSession(DefaultWebSocketServerSession webSocketServerSession) {
+        WorkerSessionInfo workerSessionInfo = getWorkerSession(webSocketServerSession);
+        if(workerSessionInfo != null) {
+            workerSessionInfo.setDeactivated();
+            workerSessionInfos.remove(webSocketServerSession);
+        }
+        if(WebSocketUtil.isSocketActive(webSocketServerSession)) {
+            WebSocketUtil.closeWebSocket(webSocketServerSession, CloseReason.Codes.NORMAL, "Closed by request");
         }
     }
 

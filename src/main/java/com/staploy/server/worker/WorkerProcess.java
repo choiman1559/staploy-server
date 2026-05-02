@@ -3,6 +3,7 @@ package com.staploy.server.worker;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.staploy.Protocol;
+import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.packet.PacketProcessModel;
 import com.staploy.server.commons.utils.Log;
 import com.staploy.server.commons.utils.WebSocketUtil;
@@ -20,39 +21,37 @@ public class WorkerProcess implements PacketProcessModel {
 
     private static final String LogTAG = "WorkerProcess";
     public static final ConcurrentHashMap<String, DefaultWebSocketServerSession> workerSocketSession = new ConcurrentHashMap<>();
-    private WorkerManager.WorkerSessionInfo workerSessionInfo;
 
     private record ReceivePacketBundle(
             ApplicationCall applicationCall,
             DefaultWebSocketServerSession socketServerSession,
             Protocol.WorkerPacket workerPacket
-    ) {
+    ) { }
+
+    @Override
+    public void onPacketReceived(ApplicationCall applicationCall, String serviceType, String rawData) {
 
     }
 
     @Override
-    public void onPacketReceived(ApplicationCall applicationCall, String serviceType, String rawData) throws Exception {
-
-    }
-
-    @Override
-    public void onWebSocketSessionConnected(ApplicationCall applicationCall, String serviceType, DefaultWebSocketServerSession socketServerSession) throws Exception {
+    public void onWebSocketSessionConnected(ApplicationCall applicationCall, String serviceType, DefaultWebSocketServerSession socketServerSession) {
         WebSocketUtil.registerOnDataIncomeSocket(socketServerSession, data -> {
             Log.printDebug(LogTAG, String.format("New bytestream (%d) incoming => %s", Arrays.hashCode(data), new String(data)));
             preProcessPacket(applicationCall, socketServerSession, data);
         });
 
         WebSocketUtil.registerOnDisconnectSocket(socketServerSession, () -> {
-            if(workerSessionInfo != null && !workerSessionInfo.getWorkerUUID().isEmpty()) {
+            WorkerManager.WorkerSessionInfo workerSessionInfo = Helpers.getWorkerManager().getWorkerSession(socketServerSession);
+            if (workerSessionInfo != null && !workerSessionInfo.getWorkerUUID().isEmpty()) {
                 workerSocketSession.remove(workerSessionInfo.getWorkerUUID());
             }
-            if(workerSessionInfo != null && workerSessionInfo.isActive()) {
-                workerSessionInfo.setDeactivated();
-                workerSessionInfo = null;
+            if (workerSessionInfo != null && workerSessionInfo.isActive()) {
+                Helpers.getWorkerManager().detachWorkerSession(socketServerSession);
             }
         });
 
-        if(workerSessionInfo == null) {
+        WorkerManager.WorkerSessionInfo workerSessionInfo = Helpers.getWorkerManager().getWorkerSession(socketServerSession);
+        if (workerSessionInfo == null) {
             Log.printDebug(LogTAG, "New incoming worker encountered, sending empty hello packet");
             WebSocketUtil.replyWebSocket(socketServerSession, PacketWrapper.createNewServerPacket(
                     PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_SERVER_HELLO, Protocol.ActionProcedure.PROCEDURE_NONE).build(),
@@ -72,7 +71,8 @@ public class WorkerProcess implements PacketProcessModel {
     }
 
     private void routePacket(ReceivePacketBundle packetBundle) {
-        if(workerSessionInfo == null
+        WorkerManager.WorkerSessionInfo workerSessionInfo = Helpers.getWorkerManager().getWorkerSession(packetBundle.socketServerSession);
+        if (workerSessionInfo == null
                 && packetBundle.workerPacket.getPacketInfo().getProcedure() != Protocol.ProtocolProcedure.PROCEDURE_SERVER_HELLO) {
             WebSocketUtil.closeWebSocket(packetBundle.socketServerSession, CloseReason.Codes.PROTOCOL_ERROR, "");
             return;
@@ -80,23 +80,23 @@ public class WorkerProcess implements PacketProcessModel {
 
         switch (packetBundle.workerPacket.getPacketInfo().getProcedure()) {
             case PROCEDURE_SERVER_HELLO -> {
-                if(workerSessionInfo != null && packetBundle.workerPacket.hasWorkerInfo()) {
+                if (workerSessionInfo != null && packetBundle.workerPacket.hasWorkerInfo()) {
                     workerSessionInfo.registerWorker(packetBundle.workerPacket.getWorkerInfo());
                     Log.printDebug(LogTAG, "Registered new device: " + packetBundle.workerPacket.getWorkerInfo().getWorkerId());
-                    finalizeHandshake(packetBundle);
+                    finalizeHandshake(workerSessionInfo, packetBundle);
                 } else {
                     Log.printDebug(LogTAG, "Receiving empty ACK packet, checking already registered worker");
-                    workerSessionInfo = WorkerManager.createWorkerSessionInfo(packetBundle.workerPacket.getWorkerInfo());
-                    if(workerSessionInfo.isActive()) {
+                    workerSessionInfo = Helpers.getWorkerManager().registerNewSession(packetBundle.socketServerSession, packetBundle.workerPacket.getWorkerInfo());
+                    if (workerSessionInfo.isActive()) {
                         WebSocketUtil.closeWebSocket(packetBundle.socketServerSession, CloseReason.Codes.TRY_AGAIN_LATER, "");
                         return;
                     }
 
-                    if(workerSessionInfo.isRegistered()) {
+                    if (workerSessionInfo.isRegistered()) {
                         Protocol.WorkerInfo workerInfo = workerSessionInfo.getWorkerInfo(true);
                         try {
                             Log.printDebug(LogTAG, "Handshake completed: " + JsonFormat.printer().print(workerInfo));
-                            finalizeHandshake(packetBundle);
+                            finalizeHandshake(workerSessionInfo, packetBundle);
                         } catch (InvalidProtocolBufferException e) {
                             Log.printDebug(LogTAG, "Handshake completed but message not decoded...");
                             WebSocketUtil.closeWebSocket(packetBundle.socketServerSession, CloseReason.Codes.INTERNAL_ERROR, "");
@@ -129,7 +129,7 @@ public class WorkerProcess implements PacketProcessModel {
         }
     }
 
-    private void finalizeHandshake(ReceivePacketBundle receivePacketBundle) {
+    private void finalizeHandshake(WorkerManager.WorkerSessionInfo workerSessionInfo, ReceivePacketBundle receivePacketBundle) {
         workerSocketSession.put(workerSessionInfo.getWorkerUUID(), receivePacketBundle.socketServerSession);
         WebSocketUtil.replyWebSocket(receivePacketBundle.socketServerSession, PacketWrapper.createNewServerPacket(
                 PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_SERVER_HELLO, Protocol.ActionProcedure.PROCEDURE_ACK).build(),
