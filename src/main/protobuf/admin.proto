@@ -1,6 +1,8 @@
 syntax = "proto3";
 package com.staploy;
+
 import "protocol.proto";
+import "app.proto";
 
 enum TaskGroup {
   TASK_NONE = 0;
@@ -19,22 +21,35 @@ enum TaskAppsTypes {
 
 enum TaskNodeTypes {
   TYPE_NODE_NONE = 0;
+  TYPE_NODE_CONNECTED = 1;
+  TYPE_NODE_EXECUTE_SHELL = 2;
+  TYPE_NODE_REQ_WORKER_INFO = 3;
+  TYPE_NODE_REQ_APP_INFO = 4;
+  TYPE_NODE_DISCONN_WORKER = 5;
 }
 
 enum TaskDeployTypes {
   TYPE_DEPLOY_NONE = 0;
+  TYPE_DEPLOY_PUSH_VERSION = 1;
+  TYPE_DEPLOY_SET_VERSION = 2;
+  TYPE_DEPLOY_DEL_VERSION = 3;
 }
 
 message ResponsePacket {
   string status = 1;
   string error_cause = 2;
-  string challengeCode = 3;
-  optional string extra_data = 4;
+
+  optional string extra_data = 3;
+  repeated WorkerPacket workerResponse = 4;
 }
 
 message RequestPacket {
   TaskGroup task_group = 1;
-  optional string challengeCode = 2;
-  optional ProtocolProcedure protocol_procedure = 3;
-  optional string extra_data = 4;
+  optional string extra_data = 2;
+  repeated WorkerInfo worker = 3;
+  repeated AppInfoFetch appInfo = 4;
+
+  optional TaskAppsTypes appsTaskType = 10;
+  optional TaskNodeTypes nodeTaskType = 11;
+  optional TaskDeployTypes deployTaskType = 12;
 }

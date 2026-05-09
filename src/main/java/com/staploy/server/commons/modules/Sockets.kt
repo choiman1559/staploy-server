@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-const val LOG_TAG = "WebSocket"
+private const val LOG_TAG = "WebSocket"
 
 @Suppress("unused")
 fun Application.configureSockets() {

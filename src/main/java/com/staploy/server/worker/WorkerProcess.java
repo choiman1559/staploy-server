@@ -3,6 +3,7 @@ package com.staploy.server.worker;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.staploy.Protocol;
+import com.staploy.server.admin.Task;
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.packet.PacketProcessModel;
 import com.staploy.server.commons.utils.Log;
@@ -21,12 +22,21 @@ public class WorkerProcess implements PacketProcessModel {
 
     private static final String LogTAG = "WorkerProcess";
     public static final ConcurrentHashMap<String, DefaultWebSocketServerSession> workerSocketSession = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, Task.OnWorkerReplyReceiver> workerReplyReceiverMap = new ConcurrentHashMap<>();
 
     private record ReceivePacketBundle(
             ApplicationCall applicationCall,
             DefaultWebSocketServerSession socketServerSession,
             Protocol.WorkerPacket workerPacket
     ) { }
+
+    private void invokeWorkerReplyReceiver(Protocol.WorkerPacket workerPacket) {
+        String mapKey = workerPacket.getPacketInfo().getChallengeCode();
+        if(workerReplyReceiverMap.containsKey(mapKey)) {
+            workerReplyReceiverMap.get(mapKey).onReceive(workerPacket);
+            workerReplyReceiverMap.remove(mapKey);
+        }
+    }
 
     @Override
     public void onPacketReceived(ApplicationCall applicationCall, String serviceType, String rawData) {
@@ -111,20 +121,14 @@ public class WorkerProcess implements PacketProcessModel {
                 }
             }
 
-            case PROCEDURE_REQUEST_TASK -> {
-
-            }
+            case PROCEDURE_REQUEST_TASK -> invokeWorkerReplyReceiver(packetBundle.workerPacket);
 
             case PROCEDURE_CHECK_TASK -> {
 
             }
 
             case PROCEDURE_CANCEL_TASK -> {
-
-            }
-
-            case UNRECOGNIZED -> {
-
+                //TODO: STUB!!! implement cancel task (on both backend & worker)
             }
         }
     }

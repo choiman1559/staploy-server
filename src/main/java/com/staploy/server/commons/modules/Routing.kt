@@ -10,9 +10,23 @@ import io.ktor.server.application.*
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.future.await
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+
+private const val LOG_TAG = "Routing"
+val pendingRequests = ConcurrentHashMap<ApplicationCall, CompletableFuture<Unit>>()
 
 suspend fun doProcessPacket(call: ApplicationCall) {
+    val future = CompletableFuture<Unit>()
+    pendingRequests[call] = future
+
+    doProcessFuture(call)
+    future.await()
+}
+
+suspend fun doProcessFuture(call: ApplicationCall) {
     if (call.parameters["version"] == "v1") {
         val connectionType: String = call.parameters["connection_type"].toString()
         try {
@@ -29,7 +43,10 @@ suspend fun doProcessPacket(call: ApplicationCall) {
                 }
                 return
             }
-            Service.invokeProcessPacket(call, connectionType, call.receiveText())
+
+            val body = call.receiveText()
+            Log.printDebug(LOG_TAG, body)
+            Service.invokeProcessPacket(call, connectionType, body)
         } catch (e: Exception) {
             e.printStackTrace()
             Service.replyPacket(
@@ -51,8 +68,13 @@ fun Application.configureRouting() {
     val service: Service = Service.getInstance()
     service.mOnPacketProcessReplyReceiver = Service.onPacketProcessReplyReceiver { call, code, data ->
         runBlocking {
-            call.respond(code, data)
-            Log.printDebug("routingProcess", String.format("RESPONSE %s", data))
+            try {
+                call.respond(code, data)
+                Log.printDebug("routingProcess", String.format("RESPONSE %s", data))
+            } finally {
+                pendingRequests[call]?.complete(Unit)
+                pendingRequests.remove(call)
+            }
         }
     }
 
