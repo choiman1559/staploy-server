@@ -1,24 +1,46 @@
 package com.staploy.server.admin.tasks;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 import com.staploy.Admin;
+import com.staploy.App;
 import com.staploy.Protocol;
 import com.staploy.server.admin.Task;
 import com.staploy.server.commons.service.Service;
+import com.staploy.server.commons.service.ServiceConsts;
 import com.staploy.server.packet.PacketWrapper;
+import com.staploy.server.worker.WorkerProcess;
 import io.ktor.server.application.ApplicationCall;
+
+import java.util.ArrayList;
 
 public class NodeTask extends Task {
     @Override
     public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) {
         switch (requestPacket.getNodeTaskType()) {
             case TYPE_NODE_CONNECTED -> {
+                ArrayList<Protocol.WorkerPacket> workerPackets = new ArrayList<>();
+                for(String id : WorkerProcess.workerSocketSession.keySet()) {
+                    WorkerSession workerSession = getWorkerSessionById(id);
+                    workerPackets.add(Protocol.WorkerPacket.newBuilder().setWorkerInfo(workerSession.sessionInfo().getWorkerInfo()).build());
+                }
 
+                try {
+                    Service.replyPacket(applicationCall, PacketWrapper.makePacket("", workerPackets));
+                } catch (InvalidProtocolBufferException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             case TYPE_NODE_REQ_WORKER_INFO -> {
-
+                WorkerSession workerSession = getWorkerSessionById(requestPacket.getWorker(0).getWorkerId());
+                try {
+                    Service.replyPacket(applicationCall, PacketWrapper.makePacket("",
+                            Protocol.WorkerPacket.newBuilder().setWorkerInfo(
+                                    workerSession.sessionInfo().getWorkerPersists().getWorkerInfo())
+                                    .build()));
+                } catch (InvalidProtocolBufferException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             case TYPE_NODE_REQ_APP_INFO -> {
@@ -28,7 +50,7 @@ public class NodeTask extends Task {
 
                 sendToWorker(requestPacket.getWorker(0).getWorkerId(), serverPacket.build(), workerPacket -> {
                     try {
-                        Service.replyPacket(applicationCall, PacketWrapper.makePacket(JsonFormat.printer().print(workerPacket)));
+                        Service.replyPacket(applicationCall, PacketWrapper.makePacket("", workerPacket));
                     } catch (InvalidProtocolBufferException e) {
                         throw new RuntimeException(e);
                     }
@@ -36,11 +58,28 @@ public class NodeTask extends Task {
             }
 
             case TYPE_NODE_EXECUTE_SHELL -> {
+                Protocol.ServerPacket.Builder serverPacket = Protocol.ServerPacket.newBuilder();
+                serverPacket.setPacketInfo(PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_REQUEST_TASK, Protocol.ActionProcedure.PROCEDURE_EXECUTE_SHELL));
+                serverPacket.addAppInfoFetch(App.AppInfoFetch.newBuilder().setApp(App.AppInfo.newBuilder().setAppName(requestPacket.getExtraData())).build());
 
+                sendToWorker(requestPacket.getWorker(0).getWorkerId(), serverPacket.build(), workerPacket -> {
+                    try {
+                        Service.replyPacket(applicationCall, PacketWrapper.makePacket("", workerPacket));
+                    } catch (InvalidProtocolBufferException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             }
 
             case TYPE_NODE_DISCONN_WORKER -> {
+                WorkerSession workerSession = getWorkerSessionById(requestPacket.getWorker(0).getWorkerId());
+                WorkerProcess.cleanUpSocket(workerSession.webSocketServerSession());
 
+                try {
+                    Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK));
+                } catch (InvalidProtocolBufferException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }

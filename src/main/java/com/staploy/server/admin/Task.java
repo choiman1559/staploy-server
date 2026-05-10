@@ -21,7 +21,7 @@ public class Task {
         void onReceive(Protocol.WorkerPacket workerPacket);
     }
     
-    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) {
+    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
         throw new RuntimeException("Stub!");
     }
     

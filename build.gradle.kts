@@ -52,6 +52,7 @@ dependencies {
     implementation("io.lettuce:lettuce-core:7.5.1.RELEASE")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("io.ktor:ktor-server-default-headers:3.4.2")
+    implementation("org.apache.commons:commons-compress:1.28.0")
 
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")

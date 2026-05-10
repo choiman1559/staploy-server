@@ -41,6 +41,14 @@ public class PacketWrapper {
     }
 
     public static PacketWrapper makePacket(String extra_data) {
+        return makePacket(extra_data, new Protocol.WorkerPacket[]{});
+    }
+
+    public static PacketWrapper makePacket(String extra_data, Protocol.WorkerPacket... workerPackets) {
+        return makePacket(extra_data, List.of(workerPackets));
+    }
+
+    public static PacketWrapper makePacket(String extra_data,List<Protocol.WorkerPacket> workerPackets) {
         PacketWrapper packetWrapper = new PacketWrapper();
         packetWrapper.setStatusCode(HttpStatusCode.Companion.getOK());
 
@@ -48,6 +56,7 @@ public class PacketWrapper {
         responseBuilder.setStatus(ServiceConsts.STATUS_OK);
         responseBuilder.setErrorCause(ServiceConsts.ERROR_NONE);
         responseBuilder.setExtraData(extra_data);
+        responseBuilder.addAllWorkerResponse(workerPackets);
 
         packetWrapper.setResponsePacket(responseBuilder.build());
         return packetWrapper;

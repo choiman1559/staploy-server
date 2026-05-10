@@ -45,19 +45,10 @@ public class WorkerProcess implements PacketProcessModel {
 
     @Override
     public void onWebSocketSessionConnected(ApplicationCall applicationCall, String serviceType, DefaultWebSocketServerSession socketServerSession) {
+        WebSocketUtil.registerOnDisconnectSocket(socketServerSession, () -> cleanUpSocket(socketServerSession));
         WebSocketUtil.registerOnDataIncomeSocket(socketServerSession, data -> {
             Log.printDebug(LogTAG, String.format("New bytestream (%d) incoming => %s", Arrays.hashCode(data), new String(data)));
             preProcessPacket(applicationCall, socketServerSession, data);
-        });
-
-        WebSocketUtil.registerOnDisconnectSocket(socketServerSession, () -> {
-            WorkerManager.WorkerSessionInfo workerSessionInfo = Helpers.getWorkerManager().getWorkerSession(socketServerSession);
-            if (workerSessionInfo != null && !workerSessionInfo.getWorkerUUID().isEmpty()) {
-                workerSocketSession.remove(workerSessionInfo.getWorkerUUID());
-            }
-            if (workerSessionInfo != null && workerSessionInfo.isActive()) {
-                Helpers.getWorkerManager().detachWorkerSession(socketServerSession);
-            }
         });
 
         WorkerManager.WorkerSessionInfo workerSessionInfo = Helpers.getWorkerManager().getWorkerSession(socketServerSession);
@@ -67,6 +58,16 @@ public class WorkerProcess implements PacketProcessModel {
                     PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_SERVER_HELLO, Protocol.ActionProcedure.PROCEDURE_NONE).build(),
                     null
             ).build().toByteArray());
+        }
+    }
+
+    public static void cleanUpSocket(DefaultWebSocketServerSession socketServerSession) {
+        WorkerManager.WorkerSessionInfo workerSessionInfo = Helpers.getWorkerManager().getWorkerSession(socketServerSession);
+        if (workerSessionInfo != null && !workerSessionInfo.getWorkerUUID().isEmpty()) {
+            workerSocketSession.remove(workerSessionInfo.getWorkerUUID());
+        }
+        if (workerSessionInfo != null && workerSessionInfo.isActive()) {
+            Helpers.getWorkerManager().detachWorkerSession(socketServerSession);
         }
     }
 

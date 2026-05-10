@@ -1,9 +1,8 @@
 package com.staploy.server.commons.blobs
 
-import com.google.protobuf.util.JsonFormat
-import com.staploy.Admin
 import com.staploy.server.commons.service.Helpers
 import com.staploy.server.commons.service.Service
+import com.staploy.server.commons.service.ServiceConsts
 import com.staploy.server.commons.utils.IOUtils
 import com.staploy.server.packet.PacketWrapper
 import io.ktor.http.ContentDisposition
@@ -14,8 +13,8 @@ import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receiveMultipart
-import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
 import io.ktor.util.cio.writeChannel
 import io.ktor.utils.io.copyTo
@@ -31,13 +30,17 @@ class FileProcess {
 
             multipart.forEachPart { part ->
                 when (part) {
+                    is PartData.FormItem -> {
+                        val name = part.name
+                        val value = part.value
+                    }
                     is PartData.FileItem -> {
                         fileName = fileRouteManager.registerNewUpload(part.originalFileName as String)
                         val file = fileRouteManager.getBlobFile(fileName)
                         IOUtils.createNewFile(file, true)
                         part.provider().copyTo(file.writeChannel())
                     }
-                    else -> {}
+                    else -> { }
                 }
                 part.dispose()
             }
@@ -48,12 +51,15 @@ class FileProcess {
         suspend fun onRequestDownload(applicationCall: ApplicationCall) {
             val fileRouteManager = Helpers.getFileRouteManager()
 
-            val requestPacket = Admin.RequestPacket.newBuilder()
-            JsonFormat.parser().merge(applicationCall.receiveText(), requestPacket)
-            val file = fileRouteManager.getBlobFile(requestPacket.extraData)
+            val blobToken = applicationCall.request.headers[ServiceConsts.BLOB_REQ_TYPE_DOWNLOAD]
+            if (blobToken.isNullOrEmpty()) {
+                applicationCall.respond(HttpStatusCode.BadRequest)
+                return
+            }
+            val file = fileRouteManager.getBlobFile(blobToken)
 
             if(file.exists()) {
-                val actualName = fileRouteManager.getActualName(requestPacket.extraData)
+                val actualName = fileRouteManager.getActualName(blobToken)
                 if(actualName != null) {
                     applicationCall.response.header(
                         HttpHeaders.ContentDisposition,
