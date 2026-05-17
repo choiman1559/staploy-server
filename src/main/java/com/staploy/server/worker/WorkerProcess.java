@@ -125,7 +125,7 @@ public class WorkerProcess implements PacketProcessModel {
             case PROCEDURE_REQUEST_TASK -> invokeWorkerReplyReceiver(packetBundle.workerPacket);
 
             case PROCEDURE_CHECK_TASK -> {
-
+                //TODO: STUB!!! implement check task callback (on backend)
             }
 
             case PROCEDURE_CANCEL_TASK -> {

@@ -27,6 +27,9 @@ public class Task {
     
     public void sendToWorker(String workerId, Protocol.ServerPacket serverPacket, OnWorkerReplyReceiver replyReceiver) {
         WorkerSession workerSession = getWorkerSessionById(workerId);
+        if(serverPacket.getPacketInfo().getChallengeCode().isEmpty()) {
+            throw new NullPointerException("ChallengeCode is null for packet: " + serverPacket.hashCode());
+        }
         WorkerProcess.workerReplyReceiverMap.put(serverPacket.getPacketInfo().getChallengeCode(), replyReceiver);
         WebSocketUtil.replyWebSocket(workerSession.webSocketServerSession, serverPacket.toByteArray());
     }

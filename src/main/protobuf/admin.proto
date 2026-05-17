@@ -47,9 +47,11 @@ message RequestPacket {
   TaskGroup task_group = 1;
   optional string extra_data = 2;
   repeated WorkerInfo worker = 3;
-  repeated AppInfoFetch appInfo = 4;
+  repeated AppInfoFetch appInfoFetch = 4;
 
-  optional TaskAppsTypes appsTaskType = 10;
-  optional TaskNodeTypes nodeTaskType = 11;
-  optional TaskDeployTypes deployTaskType = 12;
-}
+  oneof taskType {
+    TaskAppsTypes appsTaskType = 10;
+    TaskNodeTypes nodeTaskType = 11;
+    TaskDeployTypes deployTaskType = 12;
+  }
+  }

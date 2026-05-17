@@ -1,6 +1,5 @@
 package com.staploy.server.packet;
 
-import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.staploy.Admin;
@@ -11,7 +10,6 @@ import com.staploy.server.commons.service.ServiceConsts;
 import io.ktor.http.HttpStatusCode;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
 import java.util.random.RandomGenerator;
@@ -84,19 +82,27 @@ public class PacketWrapper {
     }
 
     public static Protocol.Packet.Builder createNewPacket(Protocol.ProtocolProcedure protocolProcedure, Protocol.ActionProcedure actionProcedure) {
+        return createNewPacket(protocolProcedure, actionProcedure, null);
+    }
+
+    public static Protocol.Packet.Builder createNewPacket(Protocol.ProtocolProcedure protocolProcedure, Protocol.ActionProcedure actionProcedure, @Nullable String extraData) {
         Protocol.Packet.Builder packetBuilder = Protocol.Packet.newBuilder();
-        packetBuilder.setExtraData(ByteString.copyFrom(Service.getInstance().getServerUUID().getBytes(StandardCharsets.UTF_8)));
         packetBuilder.setProcedure(protocolProcedure);
         packetBuilder.setActionProcedure(actionProcedure);
         packetBuilder.setChallengeCode(String.format("%d_%d_%d",
                 protocolProcedure.getNumber(),
                 actionProcedure.getNumber(),
                 Random.from(RandomGenerator.getDefault()).nextInt()));
+
+        if(extraData != null && !extraData.isEmpty()) {
+            packetBuilder.setExtraData(extraData);
+        }
         return packetBuilder;
     }
 
     public static Protocol.ServerPacket.Builder createNewServerPacket(Protocol.Packet packet, @Nullable List<App.AppInfoFetch> appInfoFetch) {
         Protocol.ServerPacket.Builder packetBuilder = Protocol.ServerPacket.newBuilder();
+        packetBuilder.setServerUUID(Service.getInstance().getServerUUID());
         packetBuilder.setPacketInfo(packet);
         if(appInfoFetch != null) {
             packetBuilder.addAllAppInfoFetch(appInfoFetch);

@@ -6,6 +6,7 @@ import com.staploy.server.commons.service.Service
 import com.staploy.server.commons.service.ServiceConsts
 
 import java.io.File
+import kotlin.io.path.createSymbolicLinkPointingTo
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -19,15 +20,19 @@ class FileRouteManager : InitHelperModule {
 
     }
 
-    fun registerActualFile(file: File): String {
+    fun registerActualFile(file: File, hardLink: Boolean): String {
         val token = registerNewUpload(file.name)
         val targetFile = getBlobFile(token)
-        file.copyTo(targetFile, overwrite = true)
+
+        if(hardLink) {
+            file.copyTo(targetFile, overwrite = true)
+        } else {
+            targetFile.toPath().createSymbolicLinkPointingTo(file.toPath())
+        }
         return token
     }
 
     fun registerNewUpload(originalName: String): String {
-        val argument = Service.getInstance().argument
         val newName = generateNewFileToken()
         Helpers.getPersistsHelper().redisCommands
             .hset(ServiceConsts.SCHEMA_BLOB_LIST, newName, originalName)

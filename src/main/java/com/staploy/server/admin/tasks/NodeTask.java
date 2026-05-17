@@ -12,6 +12,7 @@ import com.staploy.server.worker.WorkerProcess;
 import io.ktor.server.application.ApplicationCall;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class NodeTask extends Task {
     @Override
@@ -19,9 +20,17 @@ public class NodeTask extends Task {
         switch (requestPacket.getNodeTaskType()) {
             case TYPE_NODE_CONNECTED -> {
                 ArrayList<Protocol.WorkerPacket> workerPackets = new ArrayList<>();
+                HashSet<String> requestIds = new HashSet<>();
+
+                for(Protocol.WorkerInfo workerInfo : requestPacket.getWorkerList()) {
+                    requestIds.add(workerInfo.getWorkerId());
+                }
+
                 for(String id : WorkerProcess.workerSocketSession.keySet()) {
-                    WorkerSession workerSession = getWorkerSessionById(id);
-                    workerPackets.add(Protocol.WorkerPacket.newBuilder().setWorkerInfo(workerSession.sessionInfo().getWorkerInfo()).build());
+                    if(requestIds.isEmpty() || requestIds.contains(id)) {
+                        WorkerSession workerSession = getWorkerSessionById(id);
+                        workerPackets.add(Protocol.WorkerPacket.newBuilder().setWorkerInfo(workerSession.sessionInfo().getWorkerInfo()).build());
+                    }
                 }
 
                 try {
@@ -32,21 +41,28 @@ public class NodeTask extends Task {
             }
 
             case TYPE_NODE_REQ_WORKER_INFO -> {
-                WorkerSession workerSession = getWorkerSessionById(requestPacket.getWorker(0).getWorkerId());
-                try {
-                    Service.replyPacket(applicationCall, PacketWrapper.makePacket("",
-                            Protocol.WorkerPacket.newBuilder().setWorkerInfo(
-                                    workerSession.sessionInfo().getWorkerPersists().getWorkerInfo())
-                                    .build()));
-                } catch (InvalidProtocolBufferException e) {
-                    throw new RuntimeException(e);
-                }
+                String workerId = requestPacket.getWorker(0).getWorkerId();
+                WorkerSession workerSession = getWorkerSessionById(workerId);
+                Protocol.ServerPacket.Builder serverPacket = Protocol.ServerPacket.newBuilder();
+                serverPacket.setPacketInfo(PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_REQUEST_TASK, Protocol.ActionProcedure.PROCEDURE_REQUEST_WORKER_INFO));
+
+                sendToWorker(workerId, serverPacket.build(), workerPacket -> {
+                    workerSession.sessionInfo().registerWorker(workerPacket.getWorkerInfo());
+                    try {
+                        Service.replyPacket(applicationCall, PacketWrapper.makePacket("",
+                                Protocol.WorkerPacket.newBuilder().setWorkerInfo(
+                                                workerSession.sessionInfo().getWorkerPersists().getWorkerInfo())
+                                        .build()));
+                    } catch (InvalidProtocolBufferException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             }
 
             case TYPE_NODE_REQ_APP_INFO -> {
                 Protocol.ServerPacket.Builder serverPacket = Protocol.ServerPacket.newBuilder();
                 serverPacket.setPacketInfo(PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_REQUEST_TASK, Protocol.ActionProcedure.PROCEDURE_REQUEST_APP_INFO));
-                serverPacket.addAllAppInfoFetch(requestPacket.getAppInfoList());
+                serverPacket.addAllAppInfoFetch(requestPacket.getAppInfoFetchList());
 
                 sendToWorker(requestPacket.getWorker(0).getWorkerId(), serverPacket.build(), workerPacket -> {
                     try {

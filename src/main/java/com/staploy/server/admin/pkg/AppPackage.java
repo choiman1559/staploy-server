@@ -3,6 +3,7 @@ package com.staploy.server.admin.pkg;
 import com.google.protobuf.util.JsonFormat;
 import com.staploy.App;
 import com.staploy.Protocol;
+import com.staploy.server.admin.AdminConst;
 import com.staploy.server.commons.service.Service;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -17,10 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class AppPackage {
-    private static final String METADATA_FILE = ".metadata";
-    private static final String APP_PATH = "apps";
-    private static final String SHARE_ARCH_PATH = "share";
-
     private App.AppInfo appInfo;
     private App.Version baseVersionInfo;
 
@@ -82,6 +79,10 @@ public class AppPackage {
         return outputArchives.keySet();
     }
 
+    public HashMap<Protocol.CpuArch, ArchPackageBundle> getOutputArchives() {
+        return outputArchives;
+    }
+
     public void parse() throws IllegalFormatException, IOException {
         appInfo = null;
         baseVersionInfo = null;
@@ -91,7 +92,7 @@ public class AppPackage {
         checkMeta : try (TarFile tarFile = new TarFile(originalFile)) {
             final List<TarArchiveEntry> tarArchiveEntries = tarFile.getEntries();
             TarArchiveEntry entry = tarArchiveEntries.stream()
-                    .filter(e -> e.isFile() && e.getName().equals(METADATA_FILE))
+                    .filter(e -> e.isFile() && e.getName().equals(AdminConst.METADATA_FILE))
                     .findFirst()
                     .orElse(null);
 
@@ -116,7 +117,7 @@ public class AppPackage {
             }
 
             List<TarArchiveEntry> byArchEntries = tarArchiveEntries.stream()
-                    .filter(e -> e.isFile() && e.getName().endsWith(METADATA_FILE) && e.getName().split("/").length == 2)
+                    .filter(e -> e.isFile() && e.getName().endsWith(AdminConst.METADATA_FILE) && e.getName().split("/").length == 2)
                     .toList();
 
             for(TarArchiveEntry byArchMetadata : byArchEntries) {
@@ -170,7 +171,7 @@ public class AppPackage {
     private void moveFolderContents(File sourceTar, File destTar, Protocol.CpuArch targetCpuArch, boolean moveShare, App.Version version) throws IOException {
         String targetFolder = targetCpuArch.toString();
         String folderPrefix = targetFolder.endsWith("/") ? targetFolder : targetFolder + "/";
-        String sharePrefix = SHARE_ARCH_PATH + "/";
+        String sharePrefix = AdminConst.SHARE_ARCH_PATH + "/";
 
         try (TarArchiveInputStream tais = new TarArchiveInputStream(new BufferedInputStream(new FileInputStream(sourceTar)));
              TarArchiveOutputStream taos = new TarArchiveOutputStream(new BufferedOutputStream(new FileOutputStream(destTar)))) {
@@ -180,7 +181,7 @@ public class AppPackage {
 
             while ((entry = tais.getNextEntry()) != null) {
                 String entryName = entry.getName();
-                if(entryName.endsWith(METADATA_FILE)) continue;
+                if(entryName.endsWith(AdminConst.METADATA_FILE)) continue;
 
                 if (entryName.startsWith(folderPrefix) && !entryName.equals(folderPrefix)) {
                     mvEntity(entryName, folderPrefix, entry, taos, tais);
@@ -190,7 +191,7 @@ public class AppPackage {
             }
 
             byte[] contentBytes = JsonFormat.printer().print(version).getBytes(StandardCharsets.UTF_8);
-            TarArchiveEntry newMetadataEntry = new TarArchiveEntry(METADATA_FILE);
+            TarArchiveEntry newMetadataEntry = new TarArchiveEntry(AdminConst.METADATA_FILE);
             newMetadataEntry.setSize(contentBytes.length);
 
             taos.putArchiveEntry(newMetadataEntry);
@@ -221,13 +222,13 @@ public class AppPackage {
 
     private boolean createBaseFolder() {
         baseOutputDir = new File(Service.getInstance().getArgument().baseDir, String.format("%s/%s/%s",
-                APP_PATH, appInfo.getAppName(), baseVersionInfo.getVersionName()));
+                AdminConst.APP_PATH, appInfo.getAppName(), baseVersionInfo.getVersionName()));
         return baseOutputDir.isDirectory() || baseOutputDir.mkdirs();
     }
 
     private Protocol.CpuArch getArchByTag(String tag) {
         return switch (tag.toLowerCase().replace("/", "")) {
-            case SHARE_ARCH_PATH -> Protocol.CpuArch.UNKNOWN;
+            case AdminConst.SHARE_ARCH_PATH -> Protocol.CpuArch.UNKNOWN;
             case "i386" -> Protocol.CpuArch.i386;
             case "x86_64" -> Protocol.CpuArch.x86_64;
             case "arm" -> Protocol.CpuArch.arm;
