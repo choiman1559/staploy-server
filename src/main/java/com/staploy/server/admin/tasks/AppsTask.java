@@ -15,8 +15,12 @@ import io.ktor.server.application.ApplicationCall;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AppsTask extends Task {
+
+    private static final ConcurrentHashMap<String, AppPackage> packageMap = new ConcurrentHashMap<>();
+
     @Override
     public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
         switch (requestPacket.getAppsTaskType()) {
@@ -36,9 +40,17 @@ public class AppsTask extends Task {
 
             }
 
-            case TYPE_APP_BLOB -> {
+            case TYPE_APP_PKG_CREATE -> {
                 try {
-                    handleBlobProcess(applicationCall, requestPacket);
+                    handleCreatePkgProcess(applicationCall, requestPacket);
+                } catch (Exception e) {
+                    Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, e.getMessage()));
+                }
+            }
+
+            case TYPE_APP_PKG_PARSE -> {
+                try {
+                    handleParsePkgProcess(applicationCall, requestPacket);
                 } catch (Exception e) {
                     Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, e.getMessage()));
                 }
@@ -46,10 +58,39 @@ public class AppsTask extends Task {
         }
     }
 
-    private void handleBlobProcess(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws IOException {
+    private static AppPackage getPackage(String blobToken) throws IOException {
+        AppPackage appPackage;
+        if(packageMap.containsKey(blobToken)) {
+            appPackage = packageMap.get(blobToken);
+        } else {
+            appPackage = AppPackage.createParser(Helpers.getFileRouteManager().getBlobFile(blobToken));
+            packageMap.put(blobToken, appPackage);
+        }
+
+        if(appPackage.isNotParsed()) {
+            appPackage.parse();
+        }
+
+        return appPackage;
+    }
+
+    private void handleParsePkgProcess(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws IOException {
         String blobToken = requestPacket.getExtraData();
-        AppPackage appPackage = AppPackage.createParser(Helpers.getFileRouteManager().getBlobFile(blobToken));
-        appPackage.parse();
+        AppPackage appPackage = getPackage(blobToken);
+
+        Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK,
+                Protocol.WorkerPacket.newBuilder().setWorkerInfo(
+                        Protocol.WorkerInfo.newBuilder()
+                                .addInstalledApp(
+                                        App.InstalledAppInfo.newBuilder()
+                                                .setApp(appPackage.getAppInfo())
+                                                .setCurrentVersion(appPackage.getBaseVersionInfo())
+                                                .build()).build()).build()));
+    }
+
+    private void handleCreatePkgProcess(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws IOException {
+        String blobToken = requestPacket.getExtraData();
+        AppPackage appPackage = getPackage(blobToken);
         appPackage.buildByArchPackage();
 
         HashMap<Protocol.CpuArch, AppPackage.ArchPackageBundle> cpuArchBundles = appPackage.getOutputArchives();
@@ -71,6 +112,7 @@ public class AppsTask extends Task {
                 cpuArchBundles.remove(Protocol.CpuArch.UNKNOWN);
                 PersistsPkg.create(appPackage.getAppInfo(), appPackage.getBaseVersionInfo()).registerPackageBlob(cpuArchBundles);
                 Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, workerPackets.toArray(new Protocol.WorkerPacket[]{})));
+                packageMap.remove(blobToken);
             } else {
                 Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, "Cannot parse package metadata"));
             }

@@ -35,6 +35,7 @@ public class DeployTask extends Task {
                 PersistsPkg.getPackageTokenId(PersistsPkg.getCpuArchByWorker(workerInfo), requestPacket.getAppInfoFetch(0))
         ));
 
+        // TODO: Store & Load appDescription from DB
         serverPacket.addAllAppInfoFetch(requestPacket.getAppInfoFetchList());
         sendToWorker(workerInfo.getWorkerId(), serverPacket.build(), workerPacket -> {
             try {

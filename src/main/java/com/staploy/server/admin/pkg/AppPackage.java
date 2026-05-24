@@ -1,6 +1,7 @@
 package com.staploy.server.admin.pkg;
 
 import com.google.protobuf.util.JsonFormat;
+import com.staploy.Admin;
 import com.staploy.App;
 import com.staploy.Protocol;
 import com.staploy.server.admin.AdminConst;
@@ -11,16 +12,15 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.archivers.tar.TarFile;
 import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class AppPackage {
-    private App.AppInfo appInfo;
-    private App.Version baseVersionInfo;
-
+    public static long REQUIRE_MINIMUM_PACKAGE_VER = 1;
+    private Admin.PackageHeader packageHeader;
     private File baseOutputDir;
     private File originalFile;
     private final HashMap<Protocol.CpuArch, ArchPackageBundle> outputArchives;
@@ -61,18 +61,20 @@ public class AppPackage {
         return appPackage;
     }
 
-    public boolean isParsed() {
-        return appInfo != null;
+    public boolean isNotParsed() {
+        return packageHeader == null;
     }
 
-    @Nullable
+    @NotNull
     public App.AppInfo getAppInfo() {
-        return appInfo;
+        if(isNotParsed()) throw new NullPointerException("Package Not yet parsed: " + originalFile);
+        return packageHeader.getPackageInfo().getApp();
     }
 
-    @Nullable
+    @NotNull
     public App.Version getBaseVersionInfo() {
-        return baseVersionInfo;
+        if(isNotParsed()) throw new NullPointerException("Package Not yet parsed: " + originalFile);
+        return packageHeader.getPackageInfo().getCurrentVersion();
     }
 
     public Set<Protocol.CpuArch> getAvailableArch() {
@@ -84,8 +86,7 @@ public class AppPackage {
     }
 
     public void parse() throws IllegalFormatException, IOException {
-        appInfo = null;
-        baseVersionInfo = null;
+        packageHeader = null;
         outputArchives.clear();
 
         if(originalFile == null) throw new IllegalStateException("Parse target not specified");
@@ -99,11 +100,15 @@ public class AppPackage {
             if (entry != null) {
                 try (InputStream is = tarFile.getInputStream(entry)) {
                     byte[] content = IOUtils.toByteArray(is);
-                    App.InstalledAppInfo.Builder installedInfo = App.InstalledAppInfo.newBuilder();
-                    JsonFormat.parser().merge(new String(content), installedInfo);
+                    Admin.PackageHeader.Builder headerBuilder = Admin.PackageHeader.newBuilder();
+                    JsonFormat.parser().merge(new String(content), headerBuilder);
+                    packageHeader = headerBuilder.build();
 
-                    appInfo = installedInfo.getApp();
-                    baseVersionInfo = installedInfo.getCurrentVersion();
+                    if(packageHeader.getFormatVersion() < REQUIRE_MINIMUM_PACKAGE_VER) {
+                        throw new IllegalFormatFlagsException(
+                                String.format("Package format version %d is lower than required version of this server (%d)",
+                                packageHeader.getFormatVersion(), REQUIRE_MINIMUM_PACKAGE_VER));
+                    }
                 }
             } else break checkMeta;
 
@@ -113,7 +118,7 @@ public class AppPackage {
 
             for(TarArchiveEntry archiveEntry : archEntries) {
                 Protocol.CpuArch cpuArch = getArchByTag(archiveEntry.getName());
-                outputArchives.put(cpuArch, new ArchPackageBundle(cpuArch, baseVersionInfo));
+                outputArchives.put(cpuArch, new ArchPackageBundle(cpuArch, getBaseVersionInfo()));
             }
 
             List<TarArchiveEntry> byArchEntries = tarArchiveEntries.stream()
@@ -141,21 +146,21 @@ public class AppPackage {
             }
         }
 
-        if(!isParsed()) {
+        if(isNotParsed()) {
             throw new IllegalFormatFlagsException("Cannot find package metadata");
         }
     }
 
     public void buildByArchPackage() throws IOException {
         if(!createBaseFolder()) {
-            throw new IOException(String.format("Cannot found or create base directory for: %s, Abort.", appInfo.getAppName()));
+            throw new IOException(String.format("Cannot found or create base directory for: %s, Abort.", getAppInfo().getAppName()));
         }
 
         ArchPackageBundle shareBundle = outputArchives.get(Protocol.CpuArch.UNKNOWN);
         for(Protocol.CpuArch cpuArch : outputArchives.keySet()) {
             if(cpuArch == Protocol.CpuArch.UNKNOWN) continue;
             ArchPackageBundle archPackageBundle = outputArchives.get(cpuArch);
-            File targetFile = archPackageBundle.getOutput(appInfo.getAppName(), baseOutputDir);
+            File targetFile = archPackageBundle.getOutput(getAppInfo().getAppName(), baseOutputDir);
 
             boolean addShare = false;
             if(shareBundle != null) {
@@ -222,7 +227,7 @@ public class AppPackage {
 
     private boolean createBaseFolder() {
         baseOutputDir = new File(Service.getInstance().getArgument().baseDir, String.format("%s/%s/%s",
-                AdminConst.APP_PATH, appInfo.getAppName(), baseVersionInfo.getVersionName()));
+                AdminConst.APP_PATH, getAppInfo().getAppName(), getBaseVersionInfo().getVersionName()));
         return baseOutputDir.isDirectory() || baseOutputDir.mkdirs();
     }
 
