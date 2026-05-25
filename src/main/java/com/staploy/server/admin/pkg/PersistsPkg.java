@@ -2,6 +2,7 @@ package com.staploy.server.admin.pkg;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.staploy.App;
+import com.staploy.Cpus;
 import com.staploy.Protocol;
 import com.staploy.server.admin.AdminConst;
 import com.staploy.server.commons.service.Helpers;
@@ -32,7 +33,7 @@ public class PersistsPkg {
     }
 
     @Nullable
-    public static String getPackageTokenId(Protocol.CpuArch cpuArch, App.AppInfoFetch appInfoFetch) {
+    public static String getPackageTokenId(Cpus.CpuArch cpuArch, App.AppInfoFetch appInfoFetch) {
         RedisCommands<String, String> redisCommands = Helpers.getPersistsHelper().getRedisCommands();
         return redisCommands.hget(
                 String.format(AdminConst.SCHEMA_PACKAGE_META, appInfoFetch.getApp().getAppName(), appInfoFetch.getAppVersion(0).getVersionName()),
@@ -41,7 +42,7 @@ public class PersistsPkg {
     }
 
     @Nullable
-    public static App.Version getPackageVersion(Protocol.CpuArch cpuArch, App.AppInfoFetch appInfoFetch) {
+    public static App.Version getPackageVersion(Cpus.CpuArch cpuArch, App.AppInfoFetch appInfoFetch) {
         RedisCommands<String, String> redisCommands = Helpers.getPersistsHelper().getRedisCommands();
         try {
             return App.Version.parseFrom(Base64.decode(redisCommands.hget(
@@ -53,11 +54,11 @@ public class PersistsPkg {
         }
     }
 
-    public void registerPackageBlob(Map<Protocol.CpuArch, AppPackage.ArchPackageBundle> cpuArchBundles) {
+    public void registerPackageBlob(Map<Cpus.CpuArch, AppPackage.ArchPackageBundle> cpuArchBundles) {
         RedisCommands<String, String> redisCommands = Helpers.getPersistsHelper().getRedisCommands();
         Map<String, String> packageData = new HashMap<>();
 
-        for(Protocol.CpuArch cpuArch : cpuArchBundles.keySet()) {
+        for(Cpus.CpuArch cpuArch : cpuArchBundles.keySet()) {
             AppPackage.ArchPackageBundle archPackageBundle = cpuArchBundles.get(cpuArch);
             String token = Helpers.getFileRouteManager().registerActualFile(archPackageBundle.getOutput(appInfo.getAppName(), baseOutputDir), false);
 
@@ -87,15 +88,15 @@ public class PersistsPkg {
         return String.format(AdminConst.SCHEMA_PACKAGE_META, appInfo.getAppName(), baseVersion.getVersionName());
     }
 
-    public static Protocol.CpuArch getCpuArchByWorker(Protocol.WorkerInfo workerInfo) {
+    public static Cpus.CpuArch getCpuArchByWorker(Protocol.WorkerInfo workerInfo) {
         try {
             Protocol.WorkerInfo fromDbInfo = new WorkerPersists(workerInfo.getWorkerId()).getWorkerInfo();
             if(fromDbInfo != null) {
                 return fromDbInfo.getCpuArch();
             }
         } catch (Exception e) {
-            return Protocol.CpuArch.UNKNOWN;
+            return Cpus.CpuArch.UNKNOWN;
         }
-        return Protocol.CpuArch.UNKNOWN;
+        return Cpus.CpuArch.UNKNOWN;
     }
 }

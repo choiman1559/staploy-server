@@ -4,9 +4,11 @@ import com.staploy.server.commons.service.Helpers
 import com.staploy.server.commons.service.InitHelperModule
 import com.staploy.server.commons.service.Service
 import com.staploy.server.commons.service.ServiceConsts
+import kotlinx.io.IOException
 
 import java.io.File
 import kotlin.io.path.createSymbolicLinkPointingTo
+import kotlin.io.path.isSymbolicLink
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -41,7 +43,20 @@ class FileRouteManager : InitHelperModule {
 
     fun removeBlob(token: String) {
         val blobFile = getBlobFile(token)
-        if (blobFile.exists() && blobFile.delete()) {
+        val isSymlink = blobFile.toPath().isSymbolicLink()
+
+        if(isSymlink) {
+            try {
+                val realFile = blobFile.toPath().toRealPath().toFile()
+                if (realFile.exists()) {
+                    realFile.delete()
+                }
+            } catch (_: IOException) {
+                //Real-file not exists, continue;
+            }
+        }
+
+        if ((isSymlink || blobFile.exists()) && blobFile.delete()) {
             Helpers.getPersistsHelper().redisCommands
                 .hdel(ServiceConsts.SCHEMA_BLOB_LIST, token)
         } else throw FileSystemException(blobFile, null, "File cannot be deleted")

@@ -6,7 +6,7 @@ public class ServiceConsts {
     public final static String CONN_TYPE_WORKER = "worker";
 
     public final static String PATH_BLOB_DIR = "/blob/";
-    public final static String SCHEMA_BLOB_LIST = "blob_list";
+    public final static String SCHEMA_BLOB_LIST = "$blob_list";
     public static final String BLOB_REQ_TYPE = "blob_req_type";
     public static final String BLOB_REQ_TYPE_UPLOAD = "type_upload";
     public static final String BLOB_REQ_TYPE_DOWNLOAD = "type_download";

@@ -3,7 +3,7 @@ package com.staploy.server.admin.pkg;
 import com.google.protobuf.util.JsonFormat;
 import com.staploy.Admin;
 import com.staploy.App;
-import com.staploy.Protocol;
+import com.staploy.Cpus;
 import com.staploy.server.admin.AdminConst;
 import com.staploy.server.commons.service.Service;
 
@@ -23,14 +23,14 @@ public class AppPackage {
     private Admin.PackageHeader packageHeader;
     private File baseOutputDir;
     private File originalFile;
-    private final HashMap<Protocol.CpuArch, ArchPackageBundle> outputArchives;
+    private final HashMap<Cpus.CpuArch, ArchPackageBundle> outputArchives;
 
     public static class ArchPackageBundle {
-        private final Protocol.CpuArch cpuArch;
+        private final Cpus.CpuArch cpuArch;
         private App.Version byArchVersionInfo;
         private File outputArchive;
 
-        public ArchPackageBundle(Protocol.CpuArch cpuArch, App.Version baseVersion) {
+        public ArchPackageBundle(Cpus.CpuArch cpuArch, App.Version baseVersion) {
             this.cpuArch = cpuArch;
             this.byArchVersionInfo = baseVersion;
         }
@@ -77,11 +77,11 @@ public class AppPackage {
         return packageHeader.getPackageInfo().getCurrentVersion();
     }
 
-    public Set<Protocol.CpuArch> getAvailableArch() {
+    public Set<Cpus.CpuArch> getAvailableArch() {
         return outputArchives.keySet();
     }
 
-    public HashMap<Protocol.CpuArch, ArchPackageBundle> getOutputArchives() {
+    public HashMap<Cpus.CpuArch, ArchPackageBundle> getOutputArchives() {
         return outputArchives;
     }
 
@@ -117,7 +117,7 @@ public class AppPackage {
                     .toList();
 
             for(TarArchiveEntry archiveEntry : archEntries) {
-                Protocol.CpuArch cpuArch = getArchByTag(archiveEntry.getName());
+                Cpus.CpuArch cpuArch = getArchByTag(archiveEntry.getName());
                 outputArchives.put(cpuArch, new ArchPackageBundle(cpuArch, getBaseVersionInfo()));
             }
 
@@ -126,7 +126,7 @@ public class AppPackage {
                     .toList();
 
             for(TarArchiveEntry byArchMetadata : byArchEntries) {
-                Protocol.CpuArch cpuArch = getArchByTag(byArchMetadata.getName().split("/")[0]);
+                Cpus.CpuArch cpuArch = getArchByTag(byArchMetadata.getName().split("/")[0]);
                 App.Version.Builder version = App.Version.newBuilder(outputArchives.get(cpuArch).getByArchVersionInfo());
 
                 try (InputStream is = tarFile.getInputStream(byArchMetadata)) {
@@ -134,7 +134,7 @@ public class AppPackage {
                     App.Version.Builder overrideVersion = App.Version.newBuilder();
                     JsonFormat.parser().merge(new String(content), overrideVersion);
 
-                    if(cpuArch != Protocol.CpuArch.UNKNOWN && overrideVersion.hasLibVersion()) {
+                    if(cpuArch != Cpus.CpuArch.UNKNOWN && overrideVersion.hasLibVersion()) {
                         version.setLibVersion(overrideVersion.getLibVersion());
                     }
 
@@ -156,9 +156,9 @@ public class AppPackage {
             throw new IOException(String.format("Cannot found or create base directory for: %s, Abort.", getAppInfo().getAppName()));
         }
 
-        ArchPackageBundle shareBundle = outputArchives.get(Protocol.CpuArch.UNKNOWN);
-        for(Protocol.CpuArch cpuArch : outputArchives.keySet()) {
-            if(cpuArch == Protocol.CpuArch.UNKNOWN) continue;
+        ArchPackageBundle shareBundle = outputArchives.get(Cpus.CpuArch.UNKNOWN);
+        for(Cpus.CpuArch cpuArch : outputArchives.keySet()) {
+            if(cpuArch == Cpus.CpuArch.UNKNOWN) continue;
             ArchPackageBundle archPackageBundle = outputArchives.get(cpuArch);
             File targetFile = archPackageBundle.getOutput(getAppInfo().getAppName(), baseOutputDir);
 
@@ -173,7 +173,7 @@ public class AppPackage {
         }
     }
 
-    private void moveFolderContents(File sourceTar, File destTar, Protocol.CpuArch targetCpuArch, boolean moveShare, App.Version version) throws IOException {
+    private void moveFolderContents(File sourceTar, File destTar, Cpus.CpuArch targetCpuArch, boolean moveShare, App.Version version) throws IOException {
         String targetFolder = targetCpuArch.toString();
         String folderPrefix = targetFolder.endsWith("/") ? targetFolder : targetFolder + "/";
         String sharePrefix = AdminConst.SHARE_ARCH_PATH + "/";
@@ -231,17 +231,17 @@ public class AppPackage {
         return baseOutputDir.isDirectory() || baseOutputDir.mkdirs();
     }
 
-    private Protocol.CpuArch getArchByTag(String tag) {
+    private Cpus.CpuArch getArchByTag(String tag) {
         return switch (tag.toLowerCase().replace("/", "")) {
-            case AdminConst.SHARE_ARCH_PATH -> Protocol.CpuArch.UNKNOWN;
-            case "i386" -> Protocol.CpuArch.i386;
-            case "x86_64" -> Protocol.CpuArch.x86_64;
-            case "arm" -> Protocol.CpuArch.arm;
-            case "aarch64" -> Protocol.CpuArch.aarch64;
-            case "riscv32" -> Protocol.CpuArch.riscv32;
-            case "riscv64" -> Protocol.CpuArch.riscv64;
-            case "mipsel" -> Protocol.CpuArch.mipsel;
-            case "mips64el" -> Protocol.CpuArch.mips64el;
+            case AdminConst.SHARE_ARCH_PATH -> Cpus.CpuArch.UNKNOWN;
+            case "i386" -> Cpus.CpuArch.i386;
+            case "x86_64" -> Cpus.CpuArch.x86_64;
+            case "arm" -> Cpus.CpuArch.arm;
+            case "aarch64" -> Cpus.CpuArch.aarch64;
+            case "riscv32" -> Cpus.CpuArch.riscv32;
+            case "riscv64" -> Cpus.CpuArch.riscv64;
+            case "mipsel" -> Cpus.CpuArch.mipsel;
+            case "mips64el" -> Cpus.CpuArch.mips64el;
             default -> throw new IllegalStateException("Unexpected value: " + tag);
         };
     }

@@ -30,10 +30,6 @@ class FileProcess {
 
             multipart.forEachPart { part ->
                 when (part) {
-                    is PartData.FormItem -> {
-                        val name = part.name
-                        val value = part.value
-                    }
                     is PartData.FileItem -> {
                         fileName = fileRouteManager.registerNewUpload(part.originalFileName as String)
                         val file = fileRouteManager.getBlobFile(fileName)
