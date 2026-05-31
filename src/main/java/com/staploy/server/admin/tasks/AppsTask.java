@@ -185,6 +185,13 @@ public class AppsTask extends Task {
                                                 .build()).build()).build());
             }
 
+            //TODO: handles "shareOnly" flags on package
+            if(cpuArchBundles.size() == 1 && cpuArchBundles.containsKey(Cpus.CpuArch.UNKNOWN)) {
+                Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, "Given package not including any CPU arch types without share"));
+                Helpers.getFileRouteManager().removeBlob(blobToken);
+                return;
+            }
+
             cpuArchBundles.remove(Cpus.CpuArch.UNKNOWN);
             persistsPkg.registerPackageBlob(cpuArchBundles);
             Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, workerPackets.toArray(new Protocol.WorkerPacket[]{})));
