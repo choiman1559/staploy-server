@@ -8,11 +8,12 @@ import io.ktor.server.websocket.DefaultWebSocketServerSession;
 import io.ktor.websocket.CloseReason;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WorkerManager implements InitHelperModule {
 
-    private final static String LogTAG = "WorkerManager";
+    final ConcurrentHashMap<String, String> workerIdByName;
     private final ConcurrentHashMap<String, Protocol.WorkerInfo> activeSessionWorker;
     private final ConcurrentHashMap<DefaultWebSocketServerSession, WorkerManager.WorkerSessionInfo> workerSessionInfos;
 
@@ -66,6 +67,7 @@ public class WorkerManager implements InitHelperModule {
 
     public WorkerManager() {
         activeSessionWorker = new ConcurrentHashMap<>();
+        workerIdByName = new ConcurrentHashMap<>();
         workerSessionInfos = new ConcurrentHashMap<>();
     }
 
@@ -85,6 +87,7 @@ public class WorkerManager implements InitHelperModule {
 
     public void removeActiveWorker(WorkerSessionInfo workerSessionInfo) {
         activeSessionWorker.remove(workerSessionInfo.getWorkerUUID());
+        workerIdByName.entrySet().removeIf(entry -> Objects.equals(entry.getValue(), workerSessionInfo.getWorkerUUID()));
     }
 
     private boolean hasActiveWorker(WorkerSessionInfo workerInfo) {
@@ -97,6 +100,11 @@ public class WorkerManager implements InitHelperModule {
         } catch (Exception _) {
             return false;
         }
+    }
+
+    @Nullable
+    public String getWorkerIdByName(String workerName) {
+        return workerIdByName.get(workerName);
     }
 
     @Nullable

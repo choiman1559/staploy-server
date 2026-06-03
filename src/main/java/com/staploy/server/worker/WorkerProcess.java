@@ -136,6 +136,21 @@ public class WorkerProcess implements PacketProcessModel {
 
     private void finalizeHandshake(WorkerManager.WorkerSessionInfo workerSessionInfo, ReceivePacketBundle receivePacketBundle) {
         workerSocketSession.put(workerSessionInfo.getWorkerUUID(), receivePacketBundle.socketServerSession);
+        if(!Helpers.getWorkerManager().workerIdByName.containsValue(workerSessionInfo.getWorkerUUID())) {
+            String name = workerSessionInfo.getWorkerInfo().getWorkerName();
+            if(name.isBlank()) {
+                try {
+                    com.staploy.Protocol.WorkerInfo persistInfo = workerSessionInfo.getWorkerPersists().getWorkerInfo();
+                    if(persistInfo != null) {
+                        name = persistInfo.getWorkerName();
+                    }
+                } catch (InvalidProtocolBufferException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            Helpers.getWorkerManager().workerIdByName.put(name, workerSessionInfo.getWorkerUUID());
+        }
+
         WebSocketUtil.replyWebSocket(receivePacketBundle.socketServerSession, PacketWrapper.createNewServerPacket(
                 PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_SERVER_HELLO, Protocol.ActionProcedure.PROCEDURE_ACK).build(),
                 null

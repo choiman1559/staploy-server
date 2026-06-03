@@ -6,8 +6,12 @@ public class AdminConst {
     public static final String SHARE_ARCH_PATH = "share";
 
     public static final String SCHEMA_APP_LIST = "$app_list";
-    public static final String SCHEMA_APP_VERSIONS = "%s-versions";
+    public static final String SCHEMA_APP_VERSIONS = "APP=%s";
 
-    public static final String SCHEMA_PACKAGE_META = "%s-%s-pkgmeta";
+    public static final String SCHEMA_PACKAGE_META = "PKG=%s-%s";
     public static final String SCHEMA_PACKAGE_BLOB_TOKEN = "%s-token";
+
+    public static final String SCHEME_GROUP_LIST = "$group_list";
+    public static final String SCHEMA_GROUP = "GROUP=%s";
+    public static final String PREFIX_QUERY_GROUP = "group:";
 }

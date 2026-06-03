@@ -46,7 +46,15 @@ public class PacketWrapper {
         return makePacket(extra_data, List.of(workerPackets));
     }
 
-    public static PacketWrapper makePacket(String extra_data,List<Protocol.WorkerPacket> workerPackets) {
+    public static PacketWrapper makePacket(String extra_data, Admin.GroupResponsePacket... groupPackets) {
+        return makePacket(extra_data, null, List.of(groupPackets));
+    }
+
+    public static PacketWrapper makePacket(String extra_data, List<Protocol.WorkerPacket> workerPackets) {
+        return makePacket(extra_data, workerPackets, null);
+    }
+
+    public static PacketWrapper makePacket(String extra_data, List<Protocol.WorkerPacket> workerPackets, List<Admin.GroupResponsePacket> groupResponsePackets) {
         PacketWrapper packetWrapper = new PacketWrapper();
         packetWrapper.setStatusCode(HttpStatusCode.Companion.getOK());
 
@@ -54,7 +62,14 @@ public class PacketWrapper {
         responseBuilder.setStatus(ServiceConsts.STATUS_OK);
         responseBuilder.setErrorCause(ServiceConsts.ERROR_NONE);
         responseBuilder.setExtraData(extra_data);
-        responseBuilder.addAllWorkerResponse(workerPackets);
+
+        if(workerPackets != null) {
+            responseBuilder.addAllWorkerResponse(workerPackets);
+        }
+
+        if(groupResponsePackets != null) {
+            responseBuilder.addAllGroupResponse(groupResponsePackets);
+        }
 
         packetWrapper.setResponsePacket(responseBuilder.build());
         return packetWrapper;

@@ -5,6 +5,7 @@ import com.google.protobuf.util.JsonFormat;
 import com.staploy.Admin;
 import com.staploy.server.admin.tasks.AppsTask;
 import com.staploy.server.admin.tasks.DeployTask;
+import com.staploy.server.admin.tasks.GroupTask;
 import com.staploy.server.admin.tasks.NodeTask;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.packet.PacketProcessModel;
@@ -23,6 +24,7 @@ public class AdminProcess implements PacketProcessModel {
         taskGroupMap.put(Admin.TaskGroup.TASK_MANAGE_APPS, new AppsTask());
         taskGroupMap.put(Admin.TaskGroup.TASK_MANAGE_NODE, new NodeTask());
         taskGroupMap.put(Admin.TaskGroup.TASK_DEPLOY, new DeployTask());
+        taskGroupMap.put(Admin.TaskGroup.TASK_GROUP, new GroupTask());
     }
 
     @Override
