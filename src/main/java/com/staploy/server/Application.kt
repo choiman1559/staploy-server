@@ -59,12 +59,14 @@ fun main(args: Array<String>) {
                 channel().pipeline().addFirst("ssl", SslHandler(sslEngine))
             }
         }
-    }, Application::module).start(wait = true)
+    }, Application::module).start(wait = false)
 
     Runtime.getRuntime().addShutdownHook(Thread {
         server.stop(1, 5, TimeUnit.SECONDS)
         Helpers.invokeOnDead()
     })
+
+    Helpers.invokeOnLoad()
     Thread.currentThread().join()
 }
 

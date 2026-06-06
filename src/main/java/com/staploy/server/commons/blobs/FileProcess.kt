@@ -16,31 +16,38 @@ import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
-import io.ktor.util.cio.writeChannel
-import io.ktor.utils.io.copyTo
+import io.ktor.utils.io.jvm.javaio.toInputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class FileProcess {
     companion object {
         @JvmStatic
         suspend fun onReceiveMultiPart(applicationCall: ApplicationCall) {
+            withContext(Dispatchers.IO) {
+                val fileRouteManager = Helpers.getFileRouteManager()
+                val multipart = applicationCall.receiveMultipart(formFieldLimit = Long.MAX_VALUE)
+                var fileName = ""
 
-            val fileRouteManager = Helpers.getFileRouteManager()
-            val multipart = applicationCall.receiveMultipart()
-            var fileName = ""
+                multipart.forEachPart { part ->
+                    when (part) {
+                        is PartData.FileItem -> {
+                            fileName = fileRouteManager.registerNewUpload(part.originalFileName as String)
+                            val file = fileRouteManager.getBlobFile(fileName)
+                            IOUtils.createNewFile(file, true)
 
-            multipart.forEachPart { part ->
-                when (part) {
-                    is PartData.FileItem -> {
-                        fileName = fileRouteManager.registerNewUpload(part.originalFileName as String)
-                        val file = fileRouteManager.getBlobFile(fileName)
-                        IOUtils.createNewFile(file, true)
-                        part.provider().copyTo(file.writeChannel())
+                            part.provider().toInputStream().use { inputStream ->
+                                file.outputStream().use { outputStream ->
+                                    inputStream.copyTo(outputStream, bufferSize = 64 * 1024)
+                                }
+                            }
+                        }
+                        else -> { }
                     }
-                    else -> { }
+                    part.dispose()
                 }
-                part.dispose()
+                Service.replyPacket(applicationCall, PacketWrapper.makePacket(fileName))
             }
-            Service.replyPacket(applicationCall, PacketWrapper.makePacket(fileName))
         }
 
         @JvmStatic
@@ -63,7 +70,6 @@ class FileProcess {
                             ContentDisposition.Parameters.FileName, actualName
                         ).toString()
                     )
-                    applicationCall.respondFile(file)
                 }
                 applicationCall.respondFile(file)
             } else {
