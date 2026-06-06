@@ -25,7 +25,7 @@ public class Task {
         throw new RuntimeException("Stub!");
     }
     
-    public void sendToWorker(String workerId, Protocol.ServerPacket serverPacket, OnWorkerReplyReceiver replyReceiver) throws NullPointerException {
+    public void sendToWorker(String workerId, Protocol.ServerPacket serverPacket, OnWorkerReplyReceiver replyReceiver) {
         WorkerSession workerSession = getWorkerSessionById(workerId);
         if(serverPacket.getPacketInfo().getChallengeCode().isEmpty()) {
             throw new NullPointerException("ChallengeCode is null for packet: " + serverPacket.hashCode());
@@ -34,11 +34,8 @@ public class Task {
         WebSocketUtil.replyWebSocket(workerSession.webSocketServerSession, serverPacket.toByteArray());
     }
     
-    public WorkerSession getWorkerSessionById(String workerId) throws NullPointerException {
+    public WorkerSession getWorkerSessionById(String workerId) {
         DefaultWebSocketServerSession wsSession = WorkerProcess.workerSocketSession.get(workerId);
-        if(wsSession == null) {
-            throw new NullPointerException("Worker " + workerId + " does not alive");
-        }
         return new WorkerSession(workerId, wsSession, Helpers.getWorkerManager().getWorkerSession(wsSession));
     }
 }

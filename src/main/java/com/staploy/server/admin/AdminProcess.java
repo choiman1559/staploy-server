@@ -33,14 +33,16 @@ public class AdminProcess implements PacketProcessModel {
             Admin.RequestPacket requestPacket = parseRequestPacket(rawData);
             taskGroupMap.get(requestPacket.getTaskGroup()).performTask(applicationCall, requestPacket);
         } catch (Exception e) {
-            //noinspection CallToPrintStackTrace
-            e.printStackTrace();
-            Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("Request body cannot be parsed"));
+            if(Service.getInstance().getArgument().isDebug) {
+                //noinspection CallToPrintStackTrace
+                e.printStackTrace();
+            }
+            Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(e.getMessage()));
         }
     }
 
     @Override
-    public void onWebSocketSessionConnected(ApplicationCall applicationCall, String serviceType, DefaultWebSocketServerSession socketServerSession) throws Exception {
+    public void onWebSocketSessionConnected(ApplicationCall applicationCall, String serviceType, DefaultWebSocketServerSession socketServerSession) {
 
     }
 
