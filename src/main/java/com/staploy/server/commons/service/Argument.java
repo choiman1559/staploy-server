@@ -12,11 +12,18 @@ import java.util.Properties;
 @SuppressWarnings({"SameParameterValue", "unused"})
 public class Argument {
 
-    public int port;
+    public int adminPort;
+    public int workerPort;
+
     public String host;
     public boolean isDebug;
     public String version;
     public String baseDir;
+
+    public boolean useWorkerMtls;
+    public String mTlsCaCert;
+    public String mTlsChain;
+    public String mTlsKey;
 
     public String redisAddress;
     public int redisPort;
