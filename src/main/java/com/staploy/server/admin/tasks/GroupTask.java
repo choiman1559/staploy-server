@@ -139,9 +139,11 @@ public class GroupTask extends Task {
                         GroupPersistent groupPersistent = GroupPersistent.getInstance(rawName.replace(AdminConst.PREFIX_QUERY_GROUP, ""));
                         if(groupPersistent.hasGroup()) {
                             for (Protocol.WorkerInfo workerInfo : groupPersistent.getWorkerList()) {
+                                Task.WorkerSession workerSession = getWorkerSessionById(workerInfo.getWorkerId());
                                 packetArrayList.add(Admin.GroupResponsePacket.newBuilder()
                                         .setRequestedName(rawName)
                                         .setGroupName(groupPersistent.getGroupName())
+                                        .setIsAlive(workerSession != null && workerSession.sessionInfo().isActive())
                                         .setWorkerInfo(workerInfo)
                                         .build());
                             }
@@ -159,8 +161,10 @@ public class GroupTask extends Task {
                         packetArrayList.add(Admin.GroupResponsePacket.newBuilder()
                                 .setRequestedName(rawName).build());
                     } else {
+                        Task.WorkerSession workerSession = getWorkerSessionById(nameOrIdResult);
                         packetArrayList.add(Admin.GroupResponsePacket.newBuilder()
                                 .setRequestedName(rawName)
+                                .setIsAlive(workerSession != null && workerSession.sessionInfo().isActive())
                                 .setWorkerInfo(Protocol.WorkerInfo.newBuilder()
                                         .setWorkerId(nameOrIdResult)
                                         .setWorkerName(new WorkerPersists(nameOrIdResult).getWorkerName())
