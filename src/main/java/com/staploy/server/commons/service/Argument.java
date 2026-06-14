@@ -25,6 +25,10 @@ public class Argument {
     public String mTlsChain;
     public String mTlsKey;
 
+    public boolean useAdminTls;
+    public String adminTlsChain;
+    public String adminTlsKey;
+
     public String redisAddress;
     public int redisPort;
     public String redisPassword;

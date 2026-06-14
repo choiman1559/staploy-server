@@ -40,7 +40,7 @@ public class CleanupBlobJob implements InitHelperModule {
             }
         }
 
-        Log.print("CleanBlobJob", String.format("Cleaned-up unused %d blob(s)!", blobList.size()));
+        Log.print("CleanBlobJob", String.format("Cleaned-up %d unused blob(s)!", blobList.size()));
         for(String remainBlob : blobList.keySet()) {
             Helpers.getFileRouteManager().removeBlob(remainBlob);
         }

@@ -35,9 +35,18 @@ fun main(args: Array<String>) {
             e.printStackTrace()
             return
         }
-    } else {
-        null
-    }
+    } else null
+
+    val adminTlsContext: SslContext? = if (argObj.useAdminTls) {
+        try {
+            SslContextBuilder.forServer(File(argObj.adminTlsChain), File(argObj.adminTlsKey))
+                .clientAuth(ClientAuth.NONE)
+                .build()
+        } catch (e: IOException) {
+            e.printStackTrace()
+            return
+        }
+    } else null
 
     val server = embeddedServer(Netty, applicationEnvironment { }, configure = {
         connectors.add(EngineConnectorBuilder().apply {
@@ -54,9 +63,20 @@ fun main(args: Array<String>) {
             val localAddress = channel().localAddress()
             val localPort = localAddress.port
 
-            if (argObj.useWorkerMtls && localPort == argObj.workerPort) {
-                val sslEngine = mtlsContext?.newEngine(channel().alloc())
-                channel().pipeline().addFirst("ssl", SslHandler(sslEngine))
+            when (localPort) {
+                argObj.adminPort -> {
+                    if (argObj.useAdminTls) {
+                        val sslEngine = adminTlsContext?.newEngine(channel().alloc())
+                        channel().pipeline().addFirst("ssl", SslHandler(sslEngine))
+                    }
+                }
+
+                argObj.workerPort -> {
+                    if (argObj.useWorkerMtls) {
+                        val sslEngine = mtlsContext?.newEngine(channel().alloc())
+                        channel().pipeline().addFirst("ssl", SslHandler(sslEngine))
+                    }
+                }
             }
         }
     }, Application::module).start(wait = false)
