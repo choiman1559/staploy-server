@@ -43,16 +43,32 @@ public class AuditDispatcher implements InitHelperModule {
     }
 
     public void createNew(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, Task.AuthContext authContext) {
+        if(requestPacket.hasUserTaskType() && requestPacket.getUserTaskType().getUserTaskTypes() == Users.TaskUserTypes.TYPE_USER_AUDIT) {
+            return;
+        }
         auditContextMap.put(applicationCall, AuditContext.createNew(authContext, requestPacket));
     }
 
     public void attachFlags(ApplicationCall applicationCall, Users.PermissionFlag permissionFlag) {
         if(auditContextMap.containsKey(applicationCall)) {
             AuditContext auditContext = auditContextMap.get(applicationCall);
-            if (auditContext != null) {
+            if (auditContext != null && auditContext.auditLogData().getAction() == Users.PermissionFlag.NONE) {
                 auditContext.auditLogData().setAction(permissionFlag);
             }
         }
+    }
+
+    public void attachUserInfo(ApplicationCall applicationCall, Users.UserLoginInfo userLoginInfo) {
+        if(auditContextMap.containsKey(applicationCall)) {
+            AuditContext auditContext = auditContextMap.get(applicationCall);
+            if (auditContext != null && userLoginInfo != null) {
+                auditContext.auditLogData().setOperator(userLoginInfo.getUserName());
+            }
+        }
+    }
+
+    public void detachAudit(ApplicationCall applicationCall) {
+        auditContextMap.remove(applicationCall);
     }
 
     public void commitAudit(ApplicationCall applicationCall, PacketWrapper response) {

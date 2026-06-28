@@ -23,10 +23,9 @@ public class GroupTask extends Task {
         }
 
         Admin.GroupRequestPacket groupRequestPacket = requestPacket.getGroupTaskType();
-        registerManagement(applicationCall, userContext, Users.PermissionFlag.GROUP_MANAGE);
-
         switch (groupRequestPacket.getGroupTaskTypes()) {
             case TYPE_GROUP_CREATE -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.GROUP_MANAGE);
                 if (!groupRequestPacket.hasGroupName() || groupRequestPacket.getGroupName().isBlank()) {
                     Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, "Group name tag is blank"));
                 } else {
@@ -45,6 +44,7 @@ public class GroupTask extends Task {
             }
 
             case TYPE_GROUP_DELETE -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.GROUP_MANAGE);
                 if (!groupRequestPacket.hasGroupName() || groupRequestPacket.getGroupName().isBlank()) {
                     Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, "Group name tag is blank"));
                 } else {
@@ -63,6 +63,7 @@ public class GroupTask extends Task {
             }
 
             case TYPE_GROUP_ADD_WORKER -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.GROUP_MANAGE);
                 if (!groupRequestPacket.hasGroupName() || groupRequestPacket.getGroupName().isBlank()) {
                     Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, "Group name tag is blank"));
                 } else {
@@ -81,6 +82,7 @@ public class GroupTask extends Task {
             }
 
             case TYPE_GROUP_REMOVE_WORKER -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.GROUP_MANAGE);
                 if (!groupRequestPacket.hasGroupName() || groupRequestPacket.getGroupName().isBlank()) {
                     Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, "Group name tag is blank"));
                     return;
@@ -100,6 +102,7 @@ public class GroupTask extends Task {
             }
 
             case TYPE_QUERY_GROUP_LIST -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.QUERY_ENDPOINT, false);
                 if (!groupRequestPacket.hasGroupName() || groupRequestPacket.getGroupName().isBlank()) {
                     ArrayList<Admin.GroupResponsePacket> groupResponsePackets = new ArrayList<>();
                     for(String groupName : GroupPersistent.getAllGroups()) {
@@ -131,6 +134,7 @@ public class GroupTask extends Task {
             }
 
             case TYPE_QUERY_WORKER_IDS -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.QUERY_ENDPOINT, false);
                 if(groupRequestPacket.getNamesCount() < 1) {
                     Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, "Names entry is empty"));
                     return;

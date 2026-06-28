@@ -22,6 +22,7 @@ public class NodeTask extends Task {
     public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) {
         switch (requestPacket.getNodeTaskType()) {
             case TYPE_NODE_CONNECTED -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.QUERY_ENDPOINT, false);
                 ArrayList<Protocol.WorkerPacket> workerPackets = new ArrayList<>();
                 HashSet<String> requestIds = new HashSet<>();
 
@@ -49,6 +50,7 @@ public class NodeTask extends Task {
             }
 
             case TYPE_NODE_REQ_WORKER_INFO -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.QUERY_ENDPOINT, false);
                 String workerId = requestPacket.getWorker(0).getWorkerId();
                 WorkerSession workerSession = getWorkerSessionById(workerId);
                 Protocol.ServerPacket.Builder serverPacket = Protocol.ServerPacket.newBuilder();
@@ -68,6 +70,7 @@ public class NodeTask extends Task {
             }
 
             case TYPE_NODE_REQ_APP_INFO -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.QUERY_ENDPOINT, false);
                 Protocol.ServerPacket.Builder serverPacket = Protocol.ServerPacket.newBuilder();
                 serverPacket.setPacketInfo(PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_REQUEST_TASK, Protocol.ActionProcedure.PROCEDURE_REQUEST_APP_INFO));
                 serverPacket.addAllAppInfoFetch(requestPacket.getAppInfoFetchList());

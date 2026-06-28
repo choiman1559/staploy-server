@@ -45,9 +45,17 @@ public class Task {
         void onReceive(Protocol.WorkerPacket workerPacket);
     }
 
-    public void registerManagement(ApplicationCall applicationCall, Task.AuthContext authContext, Users.PermissionFlag permissionFlag) throws SecurityException {
-        Helpers.getAuditDispatcher().attachFlags(applicationCall, permissionFlag);
+    public void registerManagement(ApplicationCall applicationCall, Task.AuthContext authContext, Users.PermissionFlag permissionFlag, boolean recordAudit) throws SecurityException {
+        if(recordAudit) {
+            Helpers.getAuditDispatcher().attachFlags(applicationCall, permissionFlag);
+        } else {
+            Helpers.getAuditDispatcher().detachAudit(applicationCall);
+        }
         authContext.matchPermissionThrows(permissionFlag);
+    }
+
+    public void registerManagement(ApplicationCall applicationCall, Task.AuthContext authContext, Users.PermissionFlag permissionFlag) throws SecurityException {
+        registerManagement(applicationCall, authContext, permissionFlag, true);
     }
     
     public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) throws Exception {

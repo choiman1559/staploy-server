@@ -30,7 +30,10 @@ public class AppsTask extends Task {
                 handleAppCreateProcess(applicationCall, requestPacket);
             }
 
-            case TYPE_APP_LISTS -> handleAppListProcess(applicationCall, requestPacket);
+            case TYPE_APP_LISTS -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.QUERY_ENDPOINT, false);
+                handleAppListProcess(applicationCall, requestPacket);
+            }
 
             case TYPE_APP_DELETE -> {
                 registerManagement(applicationCall, userContext, Users.PermissionFlag.APP_DELETE);

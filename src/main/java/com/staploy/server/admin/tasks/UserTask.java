@@ -23,24 +23,39 @@ public class UserTask extends Task {
     @Override
     public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) throws Exception {
         Users.UserRequestPacket userRequestPacket = requestPacket.getUserTaskType();
-        if(userRequestPacket.getUserTaskTypes() != Users.TaskUserTypes.TYPE_USER_LOGIN) {
-            registerManagement(applicationCall, userContext, Users.PermissionFlag.USER_MANAGE);
-        }
 
         switch (userRequestPacket.getUserTaskTypes()) {
-            case TYPE_USER_CREATE -> updateUser(applicationCall, requestPacket);
+            case TYPE_USER_CREATE -> {
+                Helpers.getAuditDispatcher().attachFlags(applicationCall, Users.PermissionFlag.USER_MANAGE);
+                updateUser(applicationCall, requestPacket, userContext);
+            }
 
-            case TYPE_USER_REMOVE -> removeUser(applicationCall, requestPacket);
+            case TYPE_USER_REMOVE -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.USER_MANAGE);
+                removeUser(applicationCall, requestPacket);
+            }
 
             case TYPE_USER_LOGIN -> loginUser(applicationCall, requestPacket);
 
-            case TYPE_USER_RBAC -> updateRBAC(applicationCall, requestPacket);
+            case TYPE_USER_RBAC ->{
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.USER_MANAGE);
+                updateRBAC(applicationCall, requestPacket);
+            }
 
-            case TYPE_USER_AUDIT -> fetchAuditLogs(applicationCall, requestPacket);
+            case TYPE_USER_AUDIT -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.USER_MANAGE);
+                fetchAuditLogs(applicationCall, requestPacket);
+            }
 
-            case TYPE_USER_LISTS -> fetchUserLists(applicationCall, requestPacket);
+            case TYPE_USER_LISTS -> {
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.QUERY_ENDPOINT, false);
+                fetchUserLists(applicationCall, requestPacket);
+            }
 
-            case TYPE_TOKEN_REFRESH -> refreshTokenVer(applicationCall, requestPacket);
+            case TYPE_TOKEN_REFRESH -> {
+                Helpers.getAuditDispatcher().attachFlags(applicationCall, Users.PermissionFlag.USER_MANAGE);
+                refreshTokenVer(applicationCall, requestPacket, userContext);
+            }
         }
     }
 
@@ -66,7 +81,7 @@ public class UserTask extends Task {
                 Users.UserResponsePacket.newBuilder().addAllAuditData(Helpers.getAuditDispatcher().queryLogs()).build()));
     }
 
-    private void refreshTokenVer(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+    private void refreshTokenVer(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext authContext) throws Exception {
         if (!requestPacket.getUserTaskType().hasUserLoginInfo()) {
             Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("cannot find user data parameter"));
             return;
@@ -74,6 +89,12 @@ public class UserTask extends Task {
 
         Users.UserLoginInfo userLoginInfo = requestPacket.getUserTaskType().getUserLoginInfo();
         UserPersistent userPersistent = UserPersistent.fromUserName(userLoginInfo.getUserName());
+
+        if(authContext.authValid() && authContext.userMetadata() != null && authContext.userMetadata().getUuid().equals(userPersistent.uuid())) {
+            registerManagement(applicationCall, authContext, Users.PermissionFlag.NONE);
+        } else {
+            registerManagement(applicationCall, authContext, Users.PermissionFlag.USER_MANAGE);
+        }
 
         if (userLoginInfo.getUserName().isEmpty() || !userPersistent.hasUser()) {
             Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("user name not found"));
@@ -111,7 +132,7 @@ public class UserTask extends Task {
                 Users.UserResponsePacket.newBuilder().addAllUserMetaDatas(userMetadataList).build()));
     }
 
-    private void updateUser(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+    private void updateUser(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext authContext) throws Exception {
         if (!requestPacket.getUserTaskType().hasUserLoginInfo()) {
             Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("cannot find user data parameter"));
             return;
@@ -126,6 +147,7 @@ public class UserTask extends Task {
         }
 
         if (!userPersistent.hasUser()) {
+            registerManagement(applicationCall, authContext, Users.PermissionFlag.USER_MANAGE);
             userPersistent = UserPersistent.newUser(userLoginInfo.getUserName());
 
             Users.UserMetadata.Builder userBuilder = Users.UserMetadata.newBuilder();
@@ -139,6 +161,10 @@ public class UserTask extends Task {
 
             Service.replyPacket(applicationCall, PacketWrapper.makePacket("created user: " + userLoginInfo.getUserName()));
             return;
+        } else if (authContext.userMetadata() != null && authContext.userMetadata().getUuid().equals(userPersistent.uuid())){
+            registerManagement(applicationCall, authContext, Users.PermissionFlag.NONE);
+        } else {
+            registerManagement(applicationCall, authContext, Users.PermissionFlag.USER_MANAGE);
         }
 
         userPersistent.setPassword(Base64.encodeBcrypt(userLoginInfo.getUserPassword().toByteArray()));
@@ -173,6 +199,7 @@ public class UserTask extends Task {
         }
 
         Users.UserLoginInfo userLoginInfo = requestPacket.getUserTaskType().getUserLoginInfo();
+        Helpers.getAuditDispatcher().attachUserInfo(applicationCall, userLoginInfo);
         UserPersistent userPersistent = UserPersistent.fromUserName(userLoginInfo.getUserName());
 
         if (userLoginInfo.getUserName().isEmpty() || !userPersistent.hasUser()) {
