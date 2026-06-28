@@ -1,5 +1,6 @@
 package com.staploy.server.commons.service;
 
+import com.staploy.server.admin.JwtCertManager;
 import com.staploy.server.admin.pkg.AppPersists;
 import com.staploy.server.admin.pkg.CleanupBlobJob;
 import com.staploy.server.commons.blobs.FileRouteManager;
@@ -17,6 +18,7 @@ public class Helpers {
     private final FileRouteManager fileRouteManager;
     private final AppPersists appPersists;
     private final CleanupBlobJob cleanupBlobJob;
+    private final JwtCertManager jwtCertManager;
 
     private Helpers() {
         initHelperModules = new ArrayList<>();
@@ -25,12 +27,14 @@ public class Helpers {
         fileRouteManager = new FileRouteManager();
         appPersists = new AppPersists();
         cleanupBlobJob = new CleanupBlobJob();
+        jwtCertManager = new JwtCertManager();
 
         initHelperModules.add(persistsHelper);
         initHelperModules.add(workerManager);
         initHelperModules.add(fileRouteManager);
         initHelperModules.add(appPersists);
         initHelperModules.add(cleanupBlobJob);
+        initHelperModules.add(jwtCertManager);
     }
 
     public static Helpers getInstance() {
@@ -54,8 +58,12 @@ public class Helpers {
         return getInstance().appPersists;
     }
 
-    public CleanupBlobJob getCleanupBlobJob() {
-        return cleanupBlobJob;
+    public static CleanupBlobJob getCleanupBlobJob() {
+        return getInstance().cleanupBlobJob;
+    }
+
+    public static JwtCertManager getJwtCertManager() {
+        return getInstance().jwtCertManager;
     }
 
     public static void invokeOnLoad() {

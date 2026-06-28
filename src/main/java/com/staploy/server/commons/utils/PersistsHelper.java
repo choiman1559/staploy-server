@@ -17,12 +17,17 @@ public class PersistsHelper implements InitHelperModule {
     public PersistsHelper() {
         Argument argument = Service.getInstance().getArgument();
         redisClient = RedisClient.create();
-        redisConnection = redisClient.connect(RedisURI.builder()
+        RedisURI.Builder redisBuilder = RedisURI.builder()
                 .withHost(argument.redisAddress)
                 .withPort(argument.redisPort)
                 .withPassword(argument.redisPassword)
-                .withSsl(argument.redisUseSSL)
-                .build());
+                .withSsl(argument.redisUseSSL);
+
+        if (argument.redisDatabaseNum != 0) {
+            redisBuilder.withDatabase(argument.redisDatabaseNum);
+        }
+
+        redisConnection = redisClient.connect(redisBuilder.build());
         redisCommands = redisConnection.sync();
     }
 

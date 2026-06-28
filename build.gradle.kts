@@ -44,6 +44,8 @@ dependencies {
     implementation("io.ktor:ktor-server-compression")
     implementation("io.ktor:ktor-server-netty")
     implementation("io.ktor:ktor-serialization-jackson")
+    implementation("io.ktor:ktor-server-auth")
+    implementation("io.ktor:ktor-server-auth-jwt")
 
     implementation("com.google.protobuf:protobuf-java:4.34.1")
     implementation("com.google.protobuf:protobuf-java-util:4.34.1")
@@ -53,6 +55,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("io.ktor:ktor-server-default-headers:3.4.2")
     implementation("org.apache.commons:commons-compress:1.28.0")
+    implementation("at.favre.lib:bcrypt:0.10.2")
 
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")

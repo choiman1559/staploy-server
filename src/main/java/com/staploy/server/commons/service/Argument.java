@@ -20,6 +20,11 @@ public class Argument {
     public String version;
     public String baseDir;
 
+    public boolean allowNonUser;
+    public boolean enforceJwtAuth = true;
+    public String jwtAuthPrivateKey;
+    public String jwtAuthPublicKey;
+
     public boolean useWorkerMtls;
     public String mTlsCaCert;
     public String mTlsChain;
@@ -33,14 +38,15 @@ public class Argument {
     public int redisPort;
     public String redisPassword;
     public boolean redisUseSSL;
+    public int redisDatabaseNum = 0;
 
     public static Argument buildFrom(List<String> argument) throws IOException, IllegalArgumentException {
-        if(argument.isEmpty()) {
+        if (argument.isEmpty()) {
             throw new IllegalArgumentException("argument is not found!");
         }
 
         File file = new File(argument.getFirst());
-        if(file.exists() && file.canRead()) {
+        if (file.exists() && file.canRead()) {
             return (Argument) parsePropertiesFromFile(file.getPath(), Argument.class);
         } else {
             throw new FileNotFoundException("com.staploy.server.commons.service.Argument File not found or Not Accessible");

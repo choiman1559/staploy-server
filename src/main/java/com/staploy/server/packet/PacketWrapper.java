@@ -5,6 +5,7 @@ import com.google.protobuf.util.JsonFormat;
 import com.staploy.Admin;
 import com.staploy.App;
 import com.staploy.Protocol;
+import com.staploy.Users;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.service.ServiceConsts;
 import io.ktor.http.HttpStatusCode;
@@ -42,19 +43,23 @@ public class PacketWrapper {
         return makePacket(extra_data, new Protocol.WorkerPacket[]{});
     }
 
+    public static PacketWrapper makePacket(String extra_data, Users.UserResponsePacket userResponsePacket) {
+        return makePacket(extra_data, null, null, userResponsePacket);
+    }
+
     public static PacketWrapper makePacket(String extra_data, Protocol.WorkerPacket... workerPackets) {
         return makePacket(extra_data, List.of(workerPackets));
     }
 
     public static PacketWrapper makePacket(String extra_data, Admin.GroupResponsePacket... groupPackets) {
-        return makePacket(extra_data, null, List.of(groupPackets));
+        return makePacket(extra_data, null, List.of(groupPackets), null);
     }
 
     public static PacketWrapper makePacket(String extra_data, List<Protocol.WorkerPacket> workerPackets) {
-        return makePacket(extra_data, workerPackets, null);
+        return makePacket(extra_data, workerPackets, null, null);
     }
 
-    public static PacketWrapper makePacket(String extra_data, List<Protocol.WorkerPacket> workerPackets, List<Admin.GroupResponsePacket> groupResponsePackets) {
+    public static PacketWrapper makePacket(String extra_data, List<Protocol.WorkerPacket> workerPackets, List<Admin.GroupResponsePacket> groupResponsePackets, Users.UserResponsePacket userResponsePacket) {
         PacketWrapper packetWrapper = new PacketWrapper();
         packetWrapper.setStatusCode(HttpStatusCode.Companion.getOK());
 
@@ -69,6 +74,10 @@ public class PacketWrapper {
 
         if(groupResponsePackets != null) {
             responseBuilder.addAllGroupResponse(groupResponsePackets);
+        }
+
+        if(userResponsePacket != null) {
+            responseBuilder.setUserResponse(userResponsePacket);
         }
 
         packetWrapper.setResponsePacket(responseBuilder.build());

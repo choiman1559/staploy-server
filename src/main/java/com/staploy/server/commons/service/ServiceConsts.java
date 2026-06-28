@@ -13,9 +13,15 @@ public class ServiceConsts {
 
     public final static String PATH_UUID_STORE_CONF = "/.STAPLOY_UUID";
     public final static String UUID_CONF_WARNING = "### UUID KEY FOR STAPLOY SERVER, DO NOT EDIT OR DELETE THIS FILE AT YOUR OWN ###\n";
+    public static final String SCHEMA_SERVER_UUID = "$server_uuid";
 
     public final static String STATUS_ERROR = "error";
     public final static String STATUS_OK = "ok";
+
+    public final static String JWT_CLAIM_UUID = "uuid";
+    public final static String JWT_CLAIM_USERNAME= "username";
+    public final static String JWT_CLAIM_VERSION = "version";
+    public final static String JWT_CLAIM_PERMISSION = "permission";
 
     public final static String ERROR_NONE = "none";
     public final static String ERROR_NOT_FOUND = "not_found";
@@ -23,4 +29,5 @@ public class ServiceConsts {
     public final static String ERROR_CONN_TYPE_NOT_IMPLEMENTED = "connection_type_not_implemented";
     public final static String ERROR_INTERNAL_ERROR = "server_internal_error";
     public final static String ERROR_ILLEGAL_ARGUMENT = "server_illegal_argument";
+    public final static String ERROR_TOKEN_NOT_VALID = "token_not_valid";
 }

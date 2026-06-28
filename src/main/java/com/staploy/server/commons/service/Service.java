@@ -52,26 +52,39 @@ public class Service {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void configureUUID() throws IOException {
+        String cachedUUId = Helpers.getPersistsHelper().getRedisCommands().get(ServiceConsts.SCHEMA_SERVER_UUID);
         File file = new File(argument.baseDir, ServiceConsts.PATH_UUID_STORE_CONF);
-        if(!file.getParentFile().exists()) {
+        if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
 
-        if(file.exists()) {
+        if (file.exists()) {
             String readFile = IOUtils.readFrom(file);
-            if(!readFile.isEmpty()) {
+            if (!readFile.isEmpty()) {
                 String[] lines = readFile.split("\n");
-                if(lines.length == 2 && lines[0].startsWith("###") && !lines[1].isEmpty()) {
+                if (lines.length == 2 && lines[0].startsWith("###") && !lines[1].isEmpty()) {
                     serverUUID = lines[1].trim();
+                    if (!(serverUUID.isEmpty() || cachedUUId.isEmpty() || serverUUID.equals(cachedUUId))) {
+                        throw new IOException(String.format("UUID with DB (%s) and file-stored UUID (%s) does not match. try reset DB or check your dir path is correct", cachedUUId, serverUUID));
+                    }
+
+                    if (cachedUUId.isEmpty()) {
+                        writeServerUUIDtoDB(serverUUID);
+                    }
                     return;
                 }
             }
-            serverUUID = UUID.randomUUID().toString();
-            IOUtils.writeTo(file, String.format("%s%s", ServiceConsts.UUID_CONF_WARNING ,serverUUID), true);
-        } else {
-            serverUUID = UUID.randomUUID().toString();
-            IOUtils.writeTo(file, String.format("%s%s", ServiceConsts.UUID_CONF_WARNING ,serverUUID));
         }
+
+        serverUUID = cachedUUId.isEmpty() ? UUID.randomUUID().toString() : cachedUUId;
+        IOUtils.writeTo(file, String.format("%s%s", ServiceConsts.UUID_CONF_WARNING, serverUUID), true);
+        if (cachedUUId.isEmpty()) {
+            writeServerUUIDtoDB(serverUUID);
+        }
+    }
+
+    private void writeServerUUIDtoDB(String serverUUID) {
+        Helpers.getPersistsHelper().getRedisCommands().set(ServiceConsts.SCHEMA_SERVER_UUID, serverUUID);
     }
 
     public String getServerUUID() {
@@ -112,7 +125,7 @@ public class Service {
     }
 
     public void checkConnectionTypeOrThrow(String connectionType) throws IllegalAccessException {
-        if(!processModels.containsKey(connectionType)) {
+        if (!processModels.containsKey(connectionType)) {
             throw new IllegalAccessException(ServiceConsts.ERROR_CONN_TYPE_NOT_FOUND);
         }
     }
