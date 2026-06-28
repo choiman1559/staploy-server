@@ -4,6 +4,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.staploy.Admin;
 import com.staploy.App;
 import com.staploy.Protocol;
+import com.staploy.Users;
 import com.staploy.server.admin.Task;
 import com.staploy.server.admin.pkg.AppPersists;
 import com.staploy.server.admin.pkg.PersistsPkg;
@@ -15,15 +16,24 @@ import io.ktor.server.application.ApplicationCall;
 
 public class DeployTask extends Task {
     @Override
-    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws InvalidProtocolBufferException {
+    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) throws InvalidProtocolBufferException {
         switch (requestPacket.getDeployTaskType()) {
             case TYPE_DEPLOY_NONE -> Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, ServiceConsts.ERROR_ILLEGAL_ARGUMENT));
 
-            case TYPE_DEPLOY_PUSH_VERSION -> deployApp(applicationCall, requestPacket);
+            case TYPE_DEPLOY_PUSH_VERSION -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_PUSH);
+                deployApp(applicationCall, requestPacket);
+            }
 
-            case TYPE_DEPLOY_SET_VERSION -> setTriggerApp(applicationCall, requestPacket);
+            case TYPE_DEPLOY_SET_VERSION -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_SET);
+                setTriggerApp(applicationCall, requestPacket);
+            }
 
-            case TYPE_DEPLOY_DEL_VERSION -> removeApp(applicationCall, requestPacket);
+            case TYPE_DEPLOY_DEL_VERSION -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_REMOVE);
+                removeApp(applicationCall, requestPacket);
+            }
         }
     }
 

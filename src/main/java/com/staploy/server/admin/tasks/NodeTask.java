@@ -4,6 +4,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.staploy.Admin;
 import com.staploy.App;
 import com.staploy.Protocol;
+import com.staploy.Users;
 import com.staploy.server.admin.Task;
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.Service;
@@ -18,7 +19,7 @@ import java.util.Objects;
 
 public class NodeTask extends Task {
     @Override
-    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) {
+    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) {
         switch (requestPacket.getNodeTaskType()) {
             case TYPE_NODE_CONNECTED -> {
                 ArrayList<Protocol.WorkerPacket> workerPackets = new ArrayList<>();
@@ -81,6 +82,7 @@ public class NodeTask extends Task {
             }
 
             case TYPE_NODE_EXECUTE_SHELL -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_BASH);
                 Protocol.ServerPacket.Builder serverPacket = Protocol.ServerPacket.newBuilder();
                 serverPacket.setPacketInfo(PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_REQUEST_TASK, Protocol.ActionProcedure.PROCEDURE_EXECUTE_SHELL));
                 serverPacket.addAppInfoFetch(App.AppInfoFetch.newBuilder().setApp(App.AppInfo.newBuilder().setAppName(requestPacket.getExtraData())).build());
@@ -95,6 +97,7 @@ public class NodeTask extends Task {
             }
 
             case TYPE_NODE_DISCONN_WORKER -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_DISCONN);
                 WorkerSession workerSession = getWorkerSessionById(requestPacket.getWorker(0).getWorkerId());
                 WorkerProcess.cleanUpSocket(workerSession.webSocketServerSession());
 

@@ -34,12 +34,13 @@ public class AdminProcess implements PacketProcessModel {
     public void onPacketReceived(ApplicationCall applicationCall, String serviceType, String rawData) throws Exception {
         try {
             Admin.RequestPacket requestPacket = parseRequestPacket(rawData);
-            if (!checkValidAuth(applicationCall, requestPacket)) {
+            Task.AuthContext authContext = checkValidAuth(applicationCall, requestPacket);
+            if (!authContext.authValid()) {
                 Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.ERROR_TOKEN_NOT_VALID));
                 return;
             }
 
-            taskGroupMap.get(requestPacket.getTaskGroup()).performTask(applicationCall, requestPacket);
+            taskGroupMap.get(requestPacket.getTaskGroup()).performTask(applicationCall, requestPacket, authContext);
         } catch (Exception e) {
             if (Service.getInstance().getArgument().isDebug) {
                 //noinspection CallToPrintStackTrace
@@ -54,15 +55,15 @@ public class AdminProcess implements PacketProcessModel {
 
     }
 
-    private boolean checkValidAuth(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) {
+    private Task.AuthContext checkValidAuth(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) {
         if(requestPacket.getTaskGroup() == Admin.TaskGroup.TASK_USER
                 && requestPacket.hasUserTaskType() && requestPacket.getUserTaskType().getUserTaskTypes() == Users.TaskUserTypes.TYPE_USER_LOGIN) {
-            return true;
+            return new Task.AuthContext(true, null);
         }
 
         String token = applicationCall.getRequest().getHeaders().get(AdminConst.HEADER_KEY_TOKEN);
         if (!Service.getInstance().getArgument().allowNonUser && (token == null || token.isEmpty())) {
-            return false;
+            return new Task.AuthContext(false, null);
         }
 
         if (token != null && token.startsWith("Bearer ")) {
@@ -75,7 +76,7 @@ public class AdminProcess implements PacketProcessModel {
                         .withIssuer(Service.getInstance().getArgument().host)
                         .build().verify(decodedJWT);
             } catch (Exception e) {
-                return false;
+                return new Task.AuthContext(false, null);
             }
 
             String uuid = decodedJWT.getClaim(ServiceConsts.JWT_CLAIM_UUID).asString();
@@ -85,14 +86,14 @@ public class AdminProcess implements PacketProcessModel {
 
             UserPersistent userPersistent = UserPersistent.fromUserName(username);
             if (!userPersistent.hasUser() || !userPersistent.uuid().equals(uuid)) {
-                return false;
+                return new Task.AuthContext(false, null);
             }
 
             Users.UserMetadata userMetadata = userPersistent.getMetadata();
-            return userMetadata != null && (userMetadata.getVersion() == version && userMetadata.getPermissions() == permission);
+            return new Task.AuthContext(userMetadata != null && (userMetadata.getVersion() == version && userMetadata.getPermissions() == permission), userMetadata);
         }
 
-        return Service.getInstance().getArgument().allowNonUser;
+        return new Task.AuthContext(Service.getInstance().getArgument().allowNonUser, null);
     }
 
     private Admin.RequestPacket parseRequestPacket(String rawData) throws InvalidProtocolBufferException {

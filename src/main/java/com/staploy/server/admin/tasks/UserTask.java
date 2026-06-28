@@ -14,10 +14,18 @@ import com.staploy.server.packet.PacketWrapper;
 import io.ktor.server.application.ApplicationCall;
 import io.lettuce.core.api.sync.RedisCommands;
 
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Map;
+
 public class UserTask extends Task {
     @Override
-    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) throws Exception {
         Users.UserRequestPacket userRequestPacket = requestPacket.getUserTaskType();
+        if(userRequestPacket.getUserTaskTypes() != Users.TaskUserTypes.TYPE_USER_LOGIN) {
+            userContext.matchPermissionThrows(Users.PermissionFlag.USER_MANAGE);
+        }
+
         switch (userRequestPacket.getUserTaskTypes()) {
             case TYPE_USER_CREATE -> updateUser(applicationCall, requestPacket);
 
@@ -31,16 +39,21 @@ public class UserTask extends Task {
                 //TODO: implement Audit
             }
 
-            case TYPE_USER_LISTS -> {
-                //TODO: implement user list
-            }
+            case TYPE_USER_LISTS -> fetchUserLists(applicationCall, requestPacket);
+
+            case TYPE_TOKEN_REFRESH -> refreshTokenVer(applicationCall, requestPacket);
         }
     }
 
     private void updateUserVersion(String uuid, boolean removal) throws NullPointerException {
         UserPersistent userPersistent = UserPersistent.fromUuid(uuid);
         Users.UserMetadata.Builder userMetadata = Users.UserMetadata.newBuilder(userPersistent.getMetadata());
-        userMetadata.setVersion(removal ? -1 : userMetadata.getVersion() + 1);
+
+        long version = userMetadata.getVersion();
+        if (version >= Long.MAX_VALUE - 1) {
+            version = 0;
+        }
+        userMetadata.setVersion(removal ? -1 : version + 1);
 
         if (removal) {
             userMetadata.setPermissions(Users.PermissionFlag.NONE_VALUE);
@@ -49,8 +62,53 @@ public class UserTask extends Task {
         userPersistent.updateMetadata(userMetadata.build());
     }
 
+    private void refreshTokenVer(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+        if (!requestPacket.getUserTaskType().hasUserLoginInfo()) {
+            Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("cannot find user data parameter"));
+            return;
+        }
+
+        Users.UserLoginInfo userLoginInfo = requestPacket.getUserTaskType().getUserLoginInfo();
+        UserPersistent userPersistent = UserPersistent.fromUserName(userLoginInfo.getUserName());
+
+        if (userLoginInfo.getUserName().isEmpty() || !userPersistent.hasUser()) {
+            Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("user name not found"));
+            return;
+        }
+
+        updateUserVersion(userPersistent.uuid(), false);
+        Service.replyPacket(applicationCall, PacketWrapper.makePacket("refreshed token: " + userLoginInfo.getUserName()));
+    }
+
+    private void fetchUserLists(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+        if (requestPacket.getUserTaskType().hasUserLoginInfo()) {
+            String userName = requestPacket.getUserTaskType().getUserLoginInfo().getUserName();
+            if(userName.isEmpty()) {
+                Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("user name not found"));
+            } else {
+                UserPersistent userPersistent = UserPersistent.fromUserName(userName);
+                Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK,
+                        Users.UserResponsePacket.newBuilder().addUserMetaDatas(userPersistent.getMetadata()).build()));
+            }
+            return;
+        }
+
+        Map<String, String> allUsers = Helpers.getPersistsHelper().getRedisCommands().hgetall(AdminConst.SCHEMA_USER_UUIDS);
+        ArrayList<Users.UserMetadata> userMetadataList = new ArrayList<>();
+
+        for(String uuid : allUsers.values()) {
+            Users.UserMetadata metadata = UserPersistent.fromUuid(uuid).getMetadata();
+            if(metadata != null && metadata.getVersion() >= 0) {
+                userMetadataList.add(metadata);
+            }
+        }
+
+        Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK,
+                Users.UserResponsePacket.newBuilder().addAllUserMetaDatas(userMetadataList).build()));
+    }
+
     private void updateUser(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
-        if (!requestPacket.hasUserTaskType()) {
+        if (!requestPacket.getUserTaskType().hasUserLoginInfo()) {
             Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("cannot find user data parameter"));
             return;
         }
@@ -86,7 +144,7 @@ public class UserTask extends Task {
 
     private void removeUser(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
         RedisCommands<String, String> redisCommands = Helpers.getPersistsHelper().getRedisCommands();
-        if (!requestPacket.hasUserTaskType()) {
+        if (!requestPacket.getUserTaskType().hasUserLoginInfo()) {
             Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("cannot find user data parameter"));
             return;
         }
@@ -105,7 +163,7 @@ public class UserTask extends Task {
     }
 
     private void loginUser(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
-        if (!requestPacket.hasUserTaskType()) {
+        if (!requestPacket.getUserTaskType().hasUserLoginInfo()) {
             Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("cannot find user data parameter"));
             return;
         }
@@ -129,6 +187,7 @@ public class UserTask extends Task {
             return;
         }
 
+        ZonedDateTime now = ZonedDateTime.now();
         String jwtKey = JWT.create()
                 .withAudience(Service.getInstance().getServerUUID())
                 .withIssuer(Service.getInstance().getArgument().host)
@@ -136,6 +195,8 @@ public class UserTask extends Task {
                 .withClaim(ServiceConsts.JWT_CLAIM_VERSION, userMetadata.getVersion())
                 .withClaim(ServiceConsts.JWT_CLAIM_PERMISSION, userMetadata.getPermissions())
                 .withClaim(ServiceConsts.JWT_CLAIM_UUID, userPersistent.uuid())
+                .withNotBefore(now.toInstant())
+                .withExpiresAt(now.plusYears(1).toInstant())
                 .sign(Helpers.getJwtCertManager().getRsaKey());
 
         Users.UserLoginInfo loginToken = Users.UserLoginInfo.newBuilder().setUserName(userLoginInfo.getUserName()).setUserToken(jwtKey).build();
@@ -144,7 +205,7 @@ public class UserTask extends Task {
     }
 
     private void updateRBAC(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
-        if (!requestPacket.hasUserTaskType()) {
+        if (!requestPacket.getUserTaskType().hasUserLoginInfo()) {
             Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("cannot find user data parameter"));
             return;
         }

@@ -2,6 +2,7 @@ package com.staploy.server.admin.tasks;
 
 import com.staploy.Admin;
 import com.staploy.Protocol;
+import com.staploy.Users;
 import com.staploy.server.admin.AdminConst;
 import com.staploy.server.admin.GroupPersistent;
 import com.staploy.server.admin.Task;
@@ -15,13 +16,15 @@ import java.util.ArrayList;
 
 public class GroupTask extends Task {
     @Override
-    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) throws Exception {
         if (!requestPacket.hasGroupTaskType()) {
             Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, ServiceConsts.ERROR_ILLEGAL_ARGUMENT));
             return;
         }
 
         Admin.GroupRequestPacket groupRequestPacket = requestPacket.getGroupTaskType();
+        userContext.matchPermissionThrows(Users.PermissionFlag.GROUP_MANAGE);
+
         switch (groupRequestPacket.getGroupTaskTypes()) {
             case TYPE_GROUP_CREATE -> {
                 if (!groupRequestPacket.hasGroupName() || groupRequestPacket.getGroupName().isBlank()) {

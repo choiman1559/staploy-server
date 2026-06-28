@@ -1,9 +1,6 @@
 package com.staploy.server.admin.tasks;
 
-import com.staploy.Admin;
-import com.staploy.App;
-import com.staploy.Cpus;
-import com.staploy.Protocol;
+import com.staploy.*;
 import com.staploy.server.admin.Task;
 import com.staploy.server.admin.pkg.AppPackage;
 import com.staploy.server.admin.pkg.AppPersists;
@@ -24,19 +21,31 @@ public class AppsTask extends Task {
     private static final ConcurrentHashMap<String, AppPackage> packageMap = new ConcurrentHashMap<>();
 
     @Override
-    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+    public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) throws Exception {
         switch (requestPacket.getAppsTaskType()) {
             case TYPE_APP_NONE -> Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, ServiceConsts.ERROR_ILLEGAL_ARGUMENT));
 
-            case TYPE_APP_REGISTER -> handleAppCreateProcess(applicationCall, requestPacket);
+            case TYPE_APP_REGISTER -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.APP_CREATE);
+                handleAppCreateProcess(applicationCall, requestPacket);
+            }
 
             case TYPE_APP_LISTS -> handleAppListProcess(applicationCall, requestPacket);
 
-            case TYPE_APP_DELETE -> handleAppDeleteProcess(applicationCall, requestPacket);
+            case TYPE_APP_DELETE -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.APP_DELETE);
+                handleAppDeleteProcess(applicationCall, requestPacket);
+            }
 
-            case TYPE_APP_PKG_CREATE -> handleCreatePkgProcess(applicationCall, requestPacket);
+            case TYPE_APP_PKG_CREATE -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.APP_UPLOAD);
+                handleCreatePkgProcess(applicationCall, requestPacket);
+            }
 
-            case TYPE_APP_PKG_PARSE -> handleParsePkgProcess(applicationCall, requestPacket);
+            case TYPE_APP_PKG_PARSE -> {
+                userContext.matchPermissionThrows(Users.PermissionFlag.APP_UPLOAD);
+                handleParsePkgProcess(applicationCall, requestPacket);
+            }
         }
     }
 
