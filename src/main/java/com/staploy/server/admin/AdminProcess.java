@@ -35,6 +35,8 @@ public class AdminProcess implements PacketProcessModel {
         try {
             Admin.RequestPacket requestPacket = parseRequestPacket(rawData);
             Task.AuthContext authContext = checkValidAuth(applicationCall, requestPacket);
+            Helpers.getAuditDispatcher().createNew(applicationCall, requestPacket, authContext);
+
             if (!authContext.authValid()) {
                 Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.ERROR_TOKEN_NOT_VALID));
                 return;

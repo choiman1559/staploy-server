@@ -44,6 +44,11 @@ public class Task {
     public interface OnWorkerReplyReceiver {
         void onReceive(Protocol.WorkerPacket workerPacket);
     }
+
+    public void registerManagement(ApplicationCall applicationCall, Task.AuthContext authContext, Users.PermissionFlag permissionFlag) throws SecurityException {
+        Helpers.getAuditDispatcher().attachFlags(applicationCall, permissionFlag);
+        authContext.matchPermissionThrows(permissionFlag);
+    }
     
     public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) throws Exception {
         throw new RuntimeException("Stub!");

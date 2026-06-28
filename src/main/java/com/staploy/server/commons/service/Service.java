@@ -122,6 +122,7 @@ public class Service {
         if (mInstance != null && mInstance.mOnPacketProcessReplyReceiver != null) {
             mInstance.mOnPacketProcessReplyReceiver.onPacketReply(call, data.getStatusCode(), data.getSerializedData());
         }
+        Helpers.getAuditDispatcher().commitAudit(call, data);
     }
 
     public void checkConnectionTypeOrThrow(String connectionType) throws IllegalAccessException {

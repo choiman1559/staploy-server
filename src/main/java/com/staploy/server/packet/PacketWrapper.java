@@ -1,6 +1,7 @@
 package com.staploy.server.packet;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.TypeRegistry;
 import com.google.protobuf.util.JsonFormat;
 import com.staploy.Admin;
 import com.staploy.App;
@@ -19,6 +20,11 @@ public class PacketWrapper {
     private HttpStatusCode statusCode;
     private Admin.ResponsePacket responsePacket;
 
+    private static final TypeRegistry AUDIT_TYPE_REGISTRY = TypeRegistry.newBuilder()
+            .add(Admin.RequestPacket.getDescriptor())
+            .add(Admin.ResponsePacket.getDescriptor())
+            .build();
+
     public void setStatusCode(HttpStatusCode statusCode) {
         this.statusCode = statusCode;
     }
@@ -36,7 +42,7 @@ public class PacketWrapper {
     }
 
     public String getSerializedData() throws InvalidProtocolBufferException {
-        return JsonFormat.printer().print(getResponsePacket());
+        return JsonFormat.printer().usingTypeRegistry(AUDIT_TYPE_REGISTRY).print(getResponsePacket());
     }
 
     public static PacketWrapper makePacket(String extra_data) {

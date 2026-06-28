@@ -23,7 +23,7 @@ public class GroupTask extends Task {
         }
 
         Admin.GroupRequestPacket groupRequestPacket = requestPacket.getGroupTaskType();
-        userContext.matchPermissionThrows(Users.PermissionFlag.GROUP_MANAGE);
+        registerManagement(applicationCall, userContext, Users.PermissionFlag.GROUP_MANAGE);
 
         switch (groupRequestPacket.getGroupTaskTypes()) {
             case TYPE_GROUP_CREATE -> {

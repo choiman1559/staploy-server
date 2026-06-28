@@ -82,7 +82,7 @@ public class NodeTask extends Task {
             }
 
             case TYPE_NODE_EXECUTE_SHELL -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_BASH);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.NODE_BASH);
                 Protocol.ServerPacket.Builder serverPacket = Protocol.ServerPacket.newBuilder();
                 serverPacket.setPacketInfo(PacketWrapper.createNewPacket(Protocol.ProtocolProcedure.PROCEDURE_REQUEST_TASK, Protocol.ActionProcedure.PROCEDURE_EXECUTE_SHELL));
                 serverPacket.addAppInfoFetch(App.AppInfoFetch.newBuilder().setApp(App.AppInfo.newBuilder().setAppName(requestPacket.getExtraData())).build());
@@ -97,7 +97,7 @@ public class NodeTask extends Task {
             }
 
             case TYPE_NODE_DISCONN_WORKER -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_DISCONN);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.NODE_DISCONN);
                 WorkerSession workerSession = getWorkerSessionById(requestPacket.getWorker(0).getWorkerId());
                 WorkerProcess.cleanUpSocket(workerSession.webSocketServerSession());
 

@@ -1,5 +1,6 @@
 package com.staploy.server.commons.service;
 
+import com.staploy.server.admin.AuditDispatcher;
 import com.staploy.server.admin.JwtCertManager;
 import com.staploy.server.admin.pkg.AppPersists;
 import com.staploy.server.admin.pkg.CleanupBlobJob;
@@ -19,6 +20,7 @@ public class Helpers {
     private final AppPersists appPersists;
     private final CleanupBlobJob cleanupBlobJob;
     private final JwtCertManager jwtCertManager;
+    private final AuditDispatcher auditDispatcher;
 
     private Helpers() {
         initHelperModules = new ArrayList<>();
@@ -28,6 +30,7 @@ public class Helpers {
         appPersists = new AppPersists();
         cleanupBlobJob = new CleanupBlobJob();
         jwtCertManager = new JwtCertManager();
+        auditDispatcher = new AuditDispatcher();
 
         initHelperModules.add(persistsHelper);
         initHelperModules.add(workerManager);
@@ -35,6 +38,7 @@ public class Helpers {
         initHelperModules.add(appPersists);
         initHelperModules.add(cleanupBlobJob);
         initHelperModules.add(jwtCertManager);
+        initHelperModules.add(auditDispatcher);
     }
 
     public static Helpers getInstance() {
@@ -64,6 +68,10 @@ public class Helpers {
 
     public static JwtCertManager getJwtCertManager() {
         return getInstance().jwtCertManager;
+    }
+
+    public static AuditDispatcher getAuditDispatcher() {
+        return getInstance().auditDispatcher;
     }
 
     public static void invokeOnLoad() {

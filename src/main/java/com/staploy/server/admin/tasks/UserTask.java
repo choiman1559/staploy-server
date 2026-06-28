@@ -14,7 +14,8 @@ import com.staploy.server.packet.PacketWrapper;
 import io.ktor.server.application.ApplicationCall;
 import io.lettuce.core.api.sync.RedisCommands;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class UserTask extends Task {
     public void performTask(ApplicationCall applicationCall, Admin.RequestPacket requestPacket, AuthContext userContext) throws Exception {
         Users.UserRequestPacket userRequestPacket = requestPacket.getUserTaskType();
         if(userRequestPacket.getUserTaskTypes() != Users.TaskUserTypes.TYPE_USER_LOGIN) {
-            userContext.matchPermissionThrows(Users.PermissionFlag.USER_MANAGE);
+            registerManagement(applicationCall, userContext, Users.PermissionFlag.USER_MANAGE);
         }
 
         switch (userRequestPacket.getUserTaskTypes()) {
@@ -35,9 +36,7 @@ public class UserTask extends Task {
 
             case TYPE_USER_RBAC -> updateRBAC(applicationCall, requestPacket);
 
-            case TYPE_USER_AUDIT -> {
-                //TODO: implement Audit
-            }
+            case TYPE_USER_AUDIT -> fetchAuditLogs(applicationCall, requestPacket);
 
             case TYPE_USER_LISTS -> fetchUserLists(applicationCall, requestPacket);
 
@@ -60,6 +59,11 @@ public class UserTask extends Task {
             userMetadata.clearRoleName();
         }
         userPersistent.updateMetadata(userMetadata.build());
+    }
+
+    private void fetchAuditLogs(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+        Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK,
+                Users.UserResponsePacket.newBuilder().addAllAuditData(Helpers.getAuditDispatcher().queryLogs()).build()));
     }
 
     private void refreshTokenVer(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
@@ -187,7 +191,7 @@ public class UserTask extends Task {
             return;
         }
 
-        ZonedDateTime now = ZonedDateTime.now();
+        Instant nowUtc = Instant.now();
         String jwtKey = JWT.create()
                 .withAudience(Service.getInstance().getServerUUID())
                 .withIssuer(Service.getInstance().getArgument().host)
@@ -195,8 +199,7 @@ public class UserTask extends Task {
                 .withClaim(ServiceConsts.JWT_CLAIM_VERSION, userMetadata.getVersion())
                 .withClaim(ServiceConsts.JWT_CLAIM_PERMISSION, userMetadata.getPermissions())
                 .withClaim(ServiceConsts.JWT_CLAIM_UUID, userPersistent.uuid())
-                .withNotBefore(now.toInstant())
-                .withExpiresAt(now.plusYears(1).toInstant())
+                .withExpiresAt(nowUtc.plus(365, ChronoUnit.DAYS))
                 .sign(Helpers.getJwtCertManager().getRsaKey());
 
         Users.UserLoginInfo loginToken = Users.UserLoginInfo.newBuilder().setUserName(userLoginInfo.getUserName()).setUserToken(jwtKey).build();

@@ -21,17 +21,17 @@ public class DeployTask extends Task {
             case TYPE_DEPLOY_NONE -> Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, ServiceConsts.ERROR_ILLEGAL_ARGUMENT));
 
             case TYPE_DEPLOY_PUSH_VERSION -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_PUSH);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.NODE_PUSH);
                 deployApp(applicationCall, requestPacket);
             }
 
             case TYPE_DEPLOY_SET_VERSION -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_SET);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.NODE_SET);
                 setTriggerApp(applicationCall, requestPacket);
             }
 
             case TYPE_DEPLOY_DEL_VERSION -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.NODE_REMOVE);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.NODE_REMOVE);
                 removeApp(applicationCall, requestPacket);
             }
         }

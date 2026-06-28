@@ -26,24 +26,24 @@ public class AppsTask extends Task {
             case TYPE_APP_NONE -> Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.STATUS_ERROR, ServiceConsts.ERROR_ILLEGAL_ARGUMENT));
 
             case TYPE_APP_REGISTER -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.APP_CREATE);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.APP_CREATE);
                 handleAppCreateProcess(applicationCall, requestPacket);
             }
 
             case TYPE_APP_LISTS -> handleAppListProcess(applicationCall, requestPacket);
 
             case TYPE_APP_DELETE -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.APP_DELETE);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.APP_DELETE);
                 handleAppDeleteProcess(applicationCall, requestPacket);
             }
 
             case TYPE_APP_PKG_CREATE -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.APP_UPLOAD);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.APP_UPLOAD);
                 handleCreatePkgProcess(applicationCall, requestPacket);
             }
 
             case TYPE_APP_PKG_PARSE -> {
-                userContext.matchPermissionThrows(Users.PermissionFlag.APP_UPLOAD);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.APP_UPLOAD);
                 handleParsePkgProcess(applicationCall, requestPacket);
             }
         }
