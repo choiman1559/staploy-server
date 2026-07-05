@@ -113,7 +113,7 @@ public class GroupTask extends Task {
                                                 .build())
                                 .build());
                     }
-                    Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, null, groupResponsePackets, null));
+                    Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, null, groupResponsePackets, null, null));
                     return;
                 }
 
@@ -130,7 +130,7 @@ public class GroupTask extends Task {
                             .setGroupName(groupRequestPacket.getGroupName())
                             .build());
                 }
-                Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, null, packetArrayList, null));
+                Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, null, packetArrayList, null, null));
             }
 
             case TYPE_QUERY_WORKER_IDS -> {
@@ -179,7 +179,7 @@ public class GroupTask extends Task {
                                 .build());
                     }
                 }
-                Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, null, packetArrayList, null));
+                Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, null, packetArrayList, null, null));
             }
         }
     }

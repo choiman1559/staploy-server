@@ -24,9 +24,10 @@ public class Task {
             if (authValid) {
                 return userMetadata() != null ? userMetadata.getPermissions() : Users.PermissionFlag.SYSTEM_ADMIN_VALUE;
             }
-            return Users.PermissionFlag.NONE_VALUE;
+            return Users.PermissionFlag.USERS_NONE_VALUE;
         }
 
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public boolean matchPermission(Users.PermissionFlag requires) {
             final int uPermit = getPermissionFlag();
             return (uPermit & Users.PermissionFlag.SYSTEM_ADMIN_VALUE) != 0 || (uPermit & requires.getNumber()) == requires.getNumber();

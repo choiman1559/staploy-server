@@ -1,9 +1,9 @@
-package com.staploy.server.admin;
+package com.staploy.server.registry;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 import com.staploy.Admin;
-import com.staploy.server.admin.tasks.*;
+import com.staploy.server.admin.AdminProcess;
+import com.staploy.server.admin.JwtCertManager;
+import com.staploy.server.admin.Task;
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.service.ServiceConsts;
@@ -14,35 +14,34 @@ import io.ktor.server.application.ApplicationCall;
 import io.ktor.server.websocket.DefaultWebSocketServerSession;
 import io.ktor.websocket.CloseReason;
 
-import java.util.HashMap;
+public class RegistryProcess implements PacketProcessModel {
 
-public class AdminProcess implements PacketProcessModel {
+    private final static RegistryProvider registryProvider = new RegistryProvider();
 
-    public HashMap<Admin.TaskGroup, Task> taskGroupMap;
-
-    public AdminProcess() {
-        taskGroupMap = new HashMap<>();
-        taskGroupMap.put(Admin.TaskGroup.TASK_MANAGE_APPS, new AppsTask());
-        taskGroupMap.put(Admin.TaskGroup.TASK_MANAGE_NODE, new NodeTask());
-        taskGroupMap.put(Admin.TaskGroup.TASK_DEPLOY, new DeployTask());
-        taskGroupMap.put(Admin.TaskGroup.TASK_GROUP, new GroupTask());
-        taskGroupMap.put(Admin.TaskGroup.TASK_USER, new UserTask());
-        taskGroupMap.put(Admin.TaskGroup.TASK_REGISTRY, new RegistryTask());
+    public static class RegistryStub extends RegistryProcess {
+        @Override
+        public void onPacketReceived(ApplicationCall applicationCall, String serviceType, String rawData) throws Exception {
+            throw new IllegalAccessException("Registry service not enabled on this server");
+        }
     }
 
     @Override
     public void onPacketReceived(ApplicationCall applicationCall, String serviceType, String rawData) throws Exception {
         try {
-            Admin.RequestPacket requestPacket = parseRequestPacket(rawData);
+            Admin.RequestPacket requestPacket = AdminProcess.parseRequestPacket(rawData);
             Task.AuthContext authContext = JwtCertManager.checkValidAuth(applicationCall, requestPacket);
             Helpers.getAuditDispatcher().createNew(applicationCall, requestPacket, authContext);
 
-            if (!authContext.authValid()) {
+            if (authContext.userMetadata() != null && !authContext.authValid()) {
                 Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(ServiceConsts.ERROR_TOKEN_NOT_VALID));
                 return;
             }
 
-            taskGroupMap.get(requestPacket.getTaskGroup()).performTask(applicationCall, requestPacket, authContext);
+            if(!requestPacket.hasRegistryTaskType()) {
+                Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("Invalid registry packet"));
+            }
+
+            registryProvider.performTask(applicationCall, requestPacket, authContext);
         } catch (Exception e) {
             if (Service.getInstance().getArgument().isDebug) {
                 //noinspection CallToPrintStackTrace
@@ -55,11 +54,5 @@ public class AdminProcess implements PacketProcessModel {
     @Override
     public void onWebSocketSessionConnected(ApplicationCall applicationCall, String serviceType, DefaultWebSocketServerSession socketServerSession) {
         WebSocketUtil.closeWebSocket(socketServerSession, CloseReason.Codes.CANNOT_ACCEPT, "Not valid service");
-    }
-
-    public static Admin.RequestPacket parseRequestPacket(String rawData) throws InvalidProtocolBufferException {
-        Admin.RequestPacket.Builder reqBuilder = Admin.RequestPacket.newBuilder();
-        JsonFormat.parser().merge(rawData, reqBuilder);
-        return reqBuilder.build();
     }
 }

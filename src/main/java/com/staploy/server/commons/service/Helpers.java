@@ -18,7 +18,6 @@ public class Helpers {
     private final WorkerManager workerManager;
     private final FileRouteManager fileRouteManager;
     private final AppPersists appPersists;
-    private final CleanupBlobJob cleanupBlobJob;
     private final JwtCertManager jwtCertManager;
     private final AuditDispatcher auditDispatcher;
 
@@ -28,7 +27,6 @@ public class Helpers {
         workerManager = new WorkerManager();
         fileRouteManager = new FileRouteManager();
         appPersists = new AppPersists();
-        cleanupBlobJob = new CleanupBlobJob();
         jwtCertManager = new JwtCertManager();
         auditDispatcher = new AuditDispatcher();
 
@@ -36,7 +34,7 @@ public class Helpers {
         initHelperModules.add(workerManager);
         initHelperModules.add(fileRouteManager);
         initHelperModules.add(appPersists);
-        initHelperModules.add(cleanupBlobJob);
+        initHelperModules.add(new CleanupBlobJob());
         initHelperModules.add(jwtCertManager);
         initHelperModules.add(auditDispatcher);
     }
@@ -60,10 +58,6 @@ public class Helpers {
 
     public static AppPersists getAppPersists() {
         return getInstance().appPersists;
-    }
-
-    public static CleanupBlobJob getCleanupBlobJob() {
-        return getInstance().cleanupBlobJob;
     }
 
     public static JwtCertManager getJwtCertManager() {

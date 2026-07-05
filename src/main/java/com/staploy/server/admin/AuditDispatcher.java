@@ -36,7 +36,7 @@ public class AuditDispatcher implements InitHelperModule {
 
         public Users.AuditLogData pushResponse(PacketWrapper packetWrapper) {
             if(auditLogData.getAction() == null) {
-                auditLogData.setAction(Users.PermissionFlag.NONE);
+                auditLogData.setAction(Users.PermissionFlag.USERS_NONE);
             }
             return auditLogData().setResponse(Any.pack(packetWrapper.getResponsePacket())).build();
         }
@@ -52,7 +52,7 @@ public class AuditDispatcher implements InitHelperModule {
     public void attachFlags(ApplicationCall applicationCall, Users.PermissionFlag permissionFlag) {
         if(auditContextMap.containsKey(applicationCall)) {
             AuditContext auditContext = auditContextMap.get(applicationCall);
-            if (auditContext != null && auditContext.auditLogData().getAction() == Users.PermissionFlag.NONE) {
+            if (auditContext != null && auditContext.auditLogData().getAction() == Users.PermissionFlag.USERS_NONE) {
                 auditContext.auditLogData().setAction(permissionFlag);
             }
         }

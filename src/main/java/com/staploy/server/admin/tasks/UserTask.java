@@ -70,7 +70,7 @@ public class UserTask extends Task {
         userMetadata.setVersion(removal ? -1 : version + 1);
 
         if (removal) {
-            userMetadata.setPermissions(Users.PermissionFlag.NONE_VALUE);
+            userMetadata.setPermissions(Users.PermissionFlag.USERS_NONE_VALUE);
             userMetadata.clearRoleName();
         }
         userPersistent.updateMetadata(userMetadata.build());
@@ -91,7 +91,7 @@ public class UserTask extends Task {
         UserPersistent userPersistent = UserPersistent.fromUserName(userLoginInfo.getUserName());
 
         if(authContext.authValid() && authContext.userMetadata() != null && authContext.userMetadata().getUuid().equals(userPersistent.uuid())) {
-            registerManagement(applicationCall, authContext, Users.PermissionFlag.NONE);
+            registerManagement(applicationCall, authContext, Users.PermissionFlag.USERS_NONE);
         } else {
             registerManagement(applicationCall, authContext, Users.PermissionFlag.USER_MANAGE);
         }
@@ -154,7 +154,7 @@ public class UserTask extends Task {
             userBuilder.setUuid(userPersistent.uuid())
                     .setUserName(userLoginInfo.getUserName())
                     .setVersion(0)
-                    .setPermissions(Users.PermissionFlag.NONE_VALUE);
+                    .setPermissions(Users.PermissionFlag.USERS_NONE_VALUE);
 
             userPersistent.updateMetadata(userBuilder.build());
             userPersistent.setPassword(Base64.encodeBcrypt(userLoginInfo.getUserPassword().toByteArray()));
@@ -162,7 +162,7 @@ public class UserTask extends Task {
             Service.replyPacket(applicationCall, PacketWrapper.makePacket("created user: " + userLoginInfo.getUserName()));
             return;
         } else if (authContext.userMetadata() != null && authContext.userMetadata().getUuid().equals(userPersistent.uuid())){
-            registerManagement(applicationCall, authContext, Users.PermissionFlag.NONE);
+            registerManagement(applicationCall, authContext, Users.PermissionFlag.USERS_NONE);
         } else {
             registerManagement(applicationCall, authContext, Users.PermissionFlag.USER_MANAGE);
         }

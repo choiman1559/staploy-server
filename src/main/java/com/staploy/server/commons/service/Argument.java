@@ -20,6 +20,10 @@ public class Argument {
     public String version;
     public String baseDir;
 
+    public boolean enableRegistry;
+    public boolean allowPullNonPermit;
+    public boolean allowPullAnonymous;
+
     public boolean allowNonUser;
     public boolean enforceJwtAuth = true;
     public String jwtAuthPrivateKey;

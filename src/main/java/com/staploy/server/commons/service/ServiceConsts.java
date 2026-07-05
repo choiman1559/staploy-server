@@ -4,6 +4,7 @@ public class ServiceConsts {
     public final static String API_ROUTE_SCHEMA = "/api/{version}/{connection_type}";
     public final static String CONN_TYPE_ADMIN = "admin";
     public final static String CONN_TYPE_WORKER = "worker";
+    public final static String CONN_TYPE_REGISTRY = "registry";
 
     public final static String PATH_BLOB_DIR = "/blob/";
     public final static String SCHEMA_BLOB_LIST = "$blob_list";

@@ -1,9 +1,17 @@
 package com.staploy.server.admin
 
+import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.staploy.Admin
+import com.staploy.Admin.RequestPacket
+import com.staploy.Users
+import com.staploy.server.admin.Task.AuthContext
+import com.staploy.server.commons.service.Helpers
 import com.staploy.server.commons.service.InitHelperModule
 import com.staploy.server.commons.service.Service
+import com.staploy.server.commons.service.ServiceConsts
 import com.staploy.server.commons.utils.Base64
+import io.ktor.server.application.*
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.security.KeyFactory
@@ -13,7 +21,7 @@ import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 
-class JwtCertManager: InitHelperModule {
+class JwtCertManager : InitHelperModule {
 
     private lateinit var rsaKey: Algorithm
 
@@ -74,10 +82,59 @@ class JwtCertManager: InitHelperModule {
         }
     }
 
+    companion object {
+        @JvmStatic
+        fun checkValidAuth(applicationCall: ApplicationCall, requestPacket: RequestPacket): AuthContext {
+            if (requestPacket.getTaskGroup() == Admin.TaskGroup.TASK_USER && requestPacket.hasUserTaskType() && requestPacket.getUserTaskType()
+                    .getUserTaskTypes() == Users.TaskUserTypes.TYPE_USER_LOGIN
+            ) {
+                return AuthContext(true, null)
+            }
+
+            var token = applicationCall.request.headers[AdminConst.HEADER_KEY_TOKEN]
+            if (!Service.getInstance().argument.allowNonUser && token.isNullOrEmpty()) {
+                return AuthContext(false, null)
+            }
+
+            if (token != null && token.startsWith("Bearer ")) {
+                token = token.replace("Bearer ", "").trim { it <= ' ' }
+                val decodedJWT = JWT.decode(token)
+
+                try {
+                    JWT.require(Helpers.getJwtCertManager().getRsaKey())
+                        .withAudience(Service.getInstance().serverUUID)
+                        .withIssuer(Service.getInstance().argument.host)
+                        .build().verify(decodedJWT)
+                } catch (_: java.lang.Exception) {
+                    return AuthContext(false, null)
+                }
+
+                val uuid = decodedJWT.getClaim(ServiceConsts.JWT_CLAIM_UUID).asString()
+                val username = decodedJWT.getClaim(ServiceConsts.JWT_CLAIM_USERNAME).asString()
+                val version = decodedJWT.getClaim(ServiceConsts.JWT_CLAIM_VERSION).asLong()
+                val permission = decodedJWT.getClaim(ServiceConsts.JWT_CLAIM_PERMISSION).asInt()
+
+                val userPersistent = UserPersistent.fromUserName(username)
+                if (!userPersistent.hasUser() || userPersistent.uuid != uuid) {
+                    return AuthContext(false, null)
+                }
+
+                val userMetadata = userPersistent.getMetadata()
+                return AuthContext(
+                    userMetadata != null && (userMetadata.version == version && userMetadata.permissions == permission),
+                    userMetadata
+                )
+            }
+
+            return AuthContext(Service.getInstance().argument.allowNonUser, null)
+        }
+    }
+
     override fun onServiceAttache() {
         val arguments = Service.getInstance().argument
-        if(arguments.enforceJwtAuth) {
-            rsaKey = Algorithm.RSA256(loadPublicKey(arguments.jwtAuthPublicKey), loadPrivateKey(arguments.jwtAuthPrivateKey))
+        if (arguments.enforceJwtAuth) {
+            rsaKey =
+                Algorithm.RSA256(loadPublicKey(arguments.jwtAuthPublicKey), loadPrivateKey(arguments.jwtAuthPrivateKey))
         }
     }
 

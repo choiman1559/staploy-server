@@ -41,6 +41,11 @@ class FileRouteManager : InitHelperModule {
         return newName
     }
 
+    fun hasBlob(token: String): Boolean {
+        return !Helpers.getPersistsHelper().redisCommands
+            .hget(ServiceConsts.SCHEMA_BLOB_LIST, token).isNullOrEmpty()
+    }
+
     fun removeBlob(token: String) {
         val blobFile = getBlobFile(token)
         val isSymlink = blobFile.toPath().isSymbolicLink()
@@ -57,9 +62,13 @@ class FileRouteManager : InitHelperModule {
         }
 
         if ((isSymlink || blobFile.exists()) && blobFile.delete()) {
-            Helpers.getPersistsHelper().redisCommands
-                .hdel(ServiceConsts.SCHEMA_BLOB_LIST, token)
+            removeBlobDbOnly(token)
         } else throw FileSystemException(blobFile, null, "File cannot be deleted")
+    }
+
+    fun removeBlobDbOnly(token: String) {
+        Helpers.getPersistsHelper().redisCommands
+            .hdel(ServiceConsts.SCHEMA_BLOB_LIST, token)
     }
 
     fun getBlobFile(token: String): File {

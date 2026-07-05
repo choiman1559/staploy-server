@@ -3,10 +3,7 @@ package com.staploy.server.packet;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.TypeRegistry;
 import com.google.protobuf.util.JsonFormat;
-import com.staploy.Admin;
-import com.staploy.App;
-import com.staploy.Protocol;
-import com.staploy.Users;
+import com.staploy.*;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.service.ServiceConsts;
 import io.ktor.http.HttpStatusCode;
@@ -50,7 +47,11 @@ public class PacketWrapper {
     }
 
     public static PacketWrapper makePacket(String extra_data, Users.UserResponsePacket userResponsePacket) {
-        return makePacket(extra_data, null, null, userResponsePacket);
+        return makePacket(extra_data, null, null, userResponsePacket, null);
+    }
+
+    public static PacketWrapper makePacket(String extra_data, Registry.RegistryResponsePacket registryResponsePacket) {
+        return makePacket(extra_data, null, null, null, registryResponsePacket);
     }
 
     public static PacketWrapper makePacket(String extra_data, Protocol.WorkerPacket... workerPackets) {
@@ -58,14 +59,18 @@ public class PacketWrapper {
     }
 
     public static PacketWrapper makePacket(String extra_data, Admin.GroupResponsePacket... groupPackets) {
-        return makePacket(extra_data, null, List.of(groupPackets), null);
+        return makePacket(extra_data, null, List.of(groupPackets), null, null);
     }
 
     public static PacketWrapper makePacket(String extra_data, List<Protocol.WorkerPacket> workerPackets) {
-        return makePacket(extra_data, workerPackets, null, null);
+        return makePacket(extra_data, workerPackets, null, null, null);
     }
 
-    public static PacketWrapper makePacket(String extra_data, List<Protocol.WorkerPacket> workerPackets, List<Admin.GroupResponsePacket> groupResponsePackets, Users.UserResponsePacket userResponsePacket) {
+    public static PacketWrapper makePacket(String extra_data,
+                                           List<Protocol.WorkerPacket> workerPackets,
+                                           List<Admin.GroupResponsePacket> groupResponsePackets,
+                                           Users.UserResponsePacket userResponsePacket,
+                                           Registry.RegistryResponsePacket registryResponsePacket) {
         PacketWrapper packetWrapper = new PacketWrapper();
         packetWrapper.setStatusCode(HttpStatusCode.Companion.getOK());
 
@@ -84,6 +89,10 @@ public class PacketWrapper {
 
         if(userResponsePacket != null) {
             responseBuilder.setUserResponse(userResponsePacket);
+        }
+
+        if(registryResponsePacket != null) {
+            responseBuilder.setRegistryResponse(registryResponsePacket);
         }
 
         packetWrapper.setResponsePacket(responseBuilder.build());

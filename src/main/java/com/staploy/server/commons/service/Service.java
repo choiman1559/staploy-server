@@ -6,6 +6,7 @@ import com.staploy.server.commons.utils.Log;
 import com.staploy.server.packet.PacketProcessModel;
 import com.staploy.server.packet.PacketWrapper;
 import com.staploy.server.admin.AdminProcess;
+import com.staploy.server.registry.RegistryProcess;
 import com.staploy.server.worker.WorkerProcess;
 import io.ktor.http.HttpStatusCode;
 import io.ktor.server.application.ApplicationCall;
@@ -40,6 +41,12 @@ public class Service {
         instance.processModels = new HashMap<>();
         instance.processModels.put(ServiceConsts.CONN_TYPE_WORKER, new WorkerProcess());
         instance.processModels.put(ServiceConsts.CONN_TYPE_ADMIN, new AdminProcess());
+
+        if(argument.enableRegistry) {
+            instance.processModels.put(ServiceConsts.CONN_TYPE_REGISTRY, new RegistryProcess());
+        } else {
+            instance.processModels.put(ServiceConsts.CONN_TYPE_REGISTRY, new RegistryProcess.RegistryStub());
+        }
 
         instance.configureStaticModules();
         instance.configureUUID();
