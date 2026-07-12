@@ -34,6 +34,12 @@ class FileRouteManager : InitHelperModule {
         return token
     }
 
+    fun registerNewCache(name: String): String {
+        val file = File(Service.getInstance().argument.baseDir, ServiceConsts.PATH_CACHE_DIR + name)
+        val token = registerActualFile(file, false)
+        return token
+    }
+
     fun registerNewUpload(originalName: String): String {
         val newName = generateNewFileToken()
         Helpers.getPersistsHelper().redisCommands

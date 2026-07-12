@@ -1,4 +1,4 @@
-package com.staploy.server.registry;
+package com.staploy.server.registry.pkg;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.staploy.App;
@@ -7,6 +7,7 @@ import com.staploy.server.commons.blobs.FileRouteManager;
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.utils.Base64;
+import com.staploy.server.registry.RegistryConst;
 import io.lettuce.core.api.sync.RedisCommands;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

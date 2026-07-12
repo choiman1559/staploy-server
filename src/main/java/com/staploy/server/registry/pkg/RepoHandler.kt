@@ -1,4 +1,4 @@
-package com.staploy.server.registry
+package com.staploy.server.registry.pkg
 
 import com.google.protobuf.util.JsonFormat
 import com.staploy.Admin
@@ -8,6 +8,7 @@ import com.staploy.Registry.RegistryResponsePacket
 import com.staploy.server.commons.service.Helpers
 import com.staploy.server.commons.service.ServiceConsts
 import com.staploy.server.commons.utils.Base64
+import com.staploy.server.registry.RegistryConst
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
@@ -22,7 +23,7 @@ import kotlinx.coroutines.runBlocking
 
 class RepoHandler {
 
-    private val client: HttpClient = HttpClient(CIO)
+    val client: HttpClient = HttpClient(CIO)
     private var repositoryUrl: String? = null
 
     var repositoryToken: String? = null
@@ -38,8 +39,8 @@ class RepoHandler {
         }
 
         if (packages) {
-            val rawData = redisCommands.hget(RegistryConst.SCHEME_REGISTRY_APP_LIST, repositoryUrl)
-            packageCache = if (rawData.isEmpty()) null else RegistryResponsePacket.parseFrom(Base64.decode(rawData))
+            val rawData = redisCommands.hget(RegistryConst.SCHEME_REPOSITORY_CACHE, repositoryUrl)
+            packageCache = if (rawData.isNullOrEmpty()) null else RegistryResponsePacket.parseFrom(Base64.decode(rawData))
         }
     }
 
@@ -76,6 +77,10 @@ class RepoHandler {
         redisCommands.hset(RegistryConst.SCHEME_REPOSITORY_LIST, repositoryUrl, token)
     }
 
+    fun getApiUrl(): String {
+        return "$repositoryUrl/api/v1/${ServiceConsts.CONN_TYPE_REGISTRY}"
+    }
+
     @Throws(Exception::class)
     fun requestPackageCache() {
         val registryRequestPacket = RegistryRequestPacket.newBuilder()
@@ -84,18 +89,22 @@ class RepoHandler {
         this.packageCache = postRequest(registryRequestPacket)
 
         val redisCommands = Helpers.getPersistsHelper().redisCommands
-        redisCommands.hset(RegistryConst.SCHEME_REPOSITORY_CACHE, repositoryUrl, Base64.encode(registryRequestPacket.toByteArray()))
+        redisCommands.hset(RegistryConst.SCHEME_REPOSITORY_CACHE, repositoryUrl, Base64.encode(packageCache?.toByteArray()))
     }
 
     @Throws(Exception::class)
-    private fun postRequest(registryRequestPacket: RegistryRequestPacket?): RegistryResponsePacket? {
+    fun postRequest(registryRequestPacket: RegistryRequestPacket?): RegistryResponsePacket? {
         queryFromDb(true, packages = false)
         val responsePacket = runBlocking {
-            val response: HttpResponse = client.get(repositoryUrl.toString()) {
+            val response: HttpResponse = client.get(getApiUrl()) {
                 headers {
-                    append(HttpHeaders.Authorization, "Bearer $repositoryToken")
+                    if(!repositoryToken.isNullOrEmpty()) {
+                        append(HttpHeaders.Authorization, "Bearer $repositoryToken")
+                    }
                 }
-                setBody(JsonFormat.printer().print(registryRequestPacket))
+                setBody(JsonFormat.printer().print(Admin.RequestPacket.newBuilder()
+                    .setTaskGroup(Admin.TaskGroup.TASK_REGISTRY)
+                    .setRegistryTaskType(registryRequestPacket).build()))
             }
 
             val stringBody: String = response.body()

@@ -5,14 +5,20 @@ import com.staploy.App;
 import com.staploy.Registry;
 import com.staploy.Users;
 import com.staploy.server.admin.Task;
+import com.staploy.server.admin.pkg.AppPackage;
+import com.staploy.server.commons.blobs.FileDownloader;
+import com.staploy.server.commons.blobs.FileRouteManager;
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.service.ServiceConsts;
 import com.staploy.server.packet.PacketWrapper;
-import com.staploy.server.registry.RepoHandler;
+import com.staploy.server.registry.pkg.RepoHandler;
 import io.ktor.server.application.ApplicationCall;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 public class RegistryTask extends Task {
@@ -60,12 +66,7 @@ public class RegistryTask extends Task {
         }
     }
 
-    private void handlePullPackage(ApplicationCall applicationCall, Registry.RegistryRequestPacket registryRequestPacket) throws Exception {
-        // TODO: implement pull package from remote server
-        throw new RuntimeException("Stub!");
-    }
-
-    private void handleQueryPackage(ApplicationCall applicationCall, Registry.RegistryRequestPacket registryRequestPacket) throws Exception {
+    private Registry.RegistryResponsePacket queryPackages(Registry.RegistryRequestPacket registryRequestPacket) throws Exception {
         List<String> repositoryTarget;
         if (registryRequestPacket.getRepositoryUrlCount() > 0) {
             repositoryTarget = registryRequestPacket.getRepositoryUrlList();
@@ -101,10 +102,78 @@ public class RegistryTask extends Task {
             }
         }
 
-        Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK,
-                Registry.RegistryResponsePacket.newBuilder()
-                        .addAllAppInfo(computedAppInfo)
-                        .addAllRepositoryUrl(computedRepoUrl).build()));
+        return Registry.RegistryResponsePacket.newBuilder()
+                .addAllAppInfo(computedAppInfo)
+                .addAllRepositoryUrl(computedRepoUrl)
+                .build();
+    }
+
+    private void handlePullPackage(ApplicationCall applicationCall, Registry.RegistryRequestPacket registryRequestPacket) throws Exception {
+        if(!registryRequestPacket.hasAppInfo() || !registryRequestPacket.getAppInfo().hasApp()) {
+            throw new IllegalArgumentException("App target to pull not specified");
+        }
+
+        Registry.RegistryResponsePacket queriedPackages = queryPackages(registryRequestPacket);
+        for(int i = 0; i < queriedPackages.getRepositoryUrlCount(); i += 1) {
+            String repoUrl = queriedPackages.getRepositoryUrl(0);
+            App.InstalledAppInfo queriedAppInfo = queriedPackages.getAppInfo(i);
+
+            if(!queriedAppInfo.hasApp() || queriedAppInfo.getAvailableVersionCount() < 1) {
+                continue;
+            }
+
+            App.Version targetVersion;
+            if(registryRequestPacket.getAppInfo().getAppVersionCount() != 1) {
+                App.Version[] sortedVersions = queriedAppInfo.getAvailableVersionList().toArray(new App.Version[0]);
+                Arrays.sort(sortedVersions, Comparator.comparing(App.Version::getVersionName));
+                targetVersion = sortedVersions[sortedVersions.length - 1];
+            } else {
+                targetVersion = queriedAppInfo.getAvailableVersion(0);
+            }
+
+            RepoHandler repoHandler = RepoHandler.fromUrl(repoUrl);
+            Registry.RegistryResponsePacket pullResponse = repoHandler.postRequest(Registry.RegistryRequestPacket.newBuilder()
+                            .setTaskType(Registry.TaskRegistryTypes.TASK_PULL)
+                            .setAppInfo(App.AppInfoFetch.newBuilder()
+                                    .setApp(queriedAppInfo.getApp())
+                                    .addAppVersion(targetVersion)
+                                    .build()).build());
+
+            if(pullResponse == null || pullResponse.getBlobId().isEmpty()) {
+                continue;
+            }
+
+            FileRouteManager fileRouteManager = Helpers.getFileRouteManager();
+            String blobId = pullResponse.getBlobId();
+            String downloadedBlob = FileDownloader.downloadFileFromRemote(repoHandler, blobId);
+
+            if(downloadedBlob.isEmpty()) {
+                throw new IllegalStateException("Package download failed from: " + repoUrl);
+            }
+
+            File packageDownload = fileRouteManager.getBlobFile(downloadedBlob);
+            String localBlobId = fileRouteManager.registerActualFile(packageDownload, false);
+
+            try {
+                AppPackage appPackage = AppPackage.createParser(packageDownload);
+                appPackage.parse();
+                appPackage.buildByArchPackage();
+
+                Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, Registry.RegistryResponsePacket.newBuilder()
+                        .addAppInfo(App.InstalledAppInfo.newBuilder()
+                                .setApp(appPackage.getAppInfo())
+                                .setCurrentVersion(appPackage.getBaseVersionInfo()).build())
+                        .addRepositoryUrl(repoUrl).build()));
+                return;
+            } finally {
+                fileRouteManager.removeBlob(localBlobId);
+            }
+        }
+        throw new IllegalStateException("Cannot found requested packages from all repositories");
+    }
+
+    private void handleQueryPackage(ApplicationCall applicationCall, Registry.RegistryRequestPacket registryRequestPacket) throws Exception {
+        Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, queryPackages(registryRequestPacket)));
     }
 
     private void handleUpdateCache(ApplicationCall applicationCall, Registry.RegistryRequestPacket registryRequestPacket) throws Exception {
