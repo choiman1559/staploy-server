@@ -14,6 +14,7 @@ public class AdminConst {
     public static final String SCHEME_GROUP_LIST = "$group_list";
     public static final String SCHEMA_GROUP = "GROUP=%s";
     public static final String PREFIX_QUERY_GROUP = "group:";
+    public static final String PREFIX_GROUP_ALL = "all";
 
     public static final String AUDIT_NO_USER = "$NO_USER";
     public static final String HEADER_KEY_TOKEN = "Authorization";

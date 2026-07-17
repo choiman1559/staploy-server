@@ -8,6 +8,7 @@ import io.ktor.server.websocket.DefaultWebSocketServerSession;
 import io.ktor.websocket.CloseReason;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -127,6 +128,10 @@ public class WorkerManager implements InitHelperModule {
         if(WebSocketUtil.isSocketActive(webSocketServerSession)) {
             WebSocketUtil.closeWebSocket(webSocketServerSession, CloseReason.Codes.NORMAL, "Closed by request");
         }
+    }
+
+    public List<Protocol.WorkerInfo> getAllActiveSessions() {
+        return activeSessionWorker.values().stream().toList();
     }
 
     @Nullable

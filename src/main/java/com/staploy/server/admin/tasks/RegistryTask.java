@@ -109,21 +109,21 @@ public class RegistryTask extends Task {
     }
 
     private void handlePullPackage(ApplicationCall applicationCall, Registry.RegistryRequestPacket registryRequestPacket) throws Exception {
-        if(!registryRequestPacket.hasAppInfo() || !registryRequestPacket.getAppInfo().hasApp()) {
+        if (!registryRequestPacket.hasAppInfo() || !registryRequestPacket.getAppInfo().hasApp()) {
             throw new IllegalArgumentException("App target to pull not specified");
         }
 
         Registry.RegistryResponsePacket queriedPackages = queryPackages(registryRequestPacket);
-        for(int i = 0; i < queriedPackages.getRepositoryUrlCount(); i += 1) {
+        for (int i = 0; i < queriedPackages.getRepositoryUrlCount(); i += 1) {
             String repoUrl = queriedPackages.getRepositoryUrl(0);
             App.InstalledAppInfo queriedAppInfo = queriedPackages.getAppInfo(i);
 
-            if(!queriedAppInfo.hasApp() || queriedAppInfo.getAvailableVersionCount() < 1) {
+            if (!queriedAppInfo.hasApp() || queriedAppInfo.getAvailableVersionCount() < 1) {
                 continue;
             }
 
             App.Version targetVersion;
-            if(registryRequestPacket.getAppInfo().getAppVersionCount() != 1) {
+            if (registryRequestPacket.getAppInfo().getAppVersionCount() != 1) {
                 App.Version[] sortedVersions = queriedAppInfo.getAvailableVersionList().toArray(new App.Version[0]);
                 Arrays.sort(sortedVersions, Comparator.comparing(App.Version::getVersionName));
                 targetVersion = sortedVersions[sortedVersions.length - 1];
@@ -133,13 +133,13 @@ public class RegistryTask extends Task {
 
             RepoHandler repoHandler = RepoHandler.fromUrl(repoUrl);
             Registry.RegistryResponsePacket pullResponse = repoHandler.postRequest(Registry.RegistryRequestPacket.newBuilder()
-                            .setTaskType(Registry.TaskRegistryTypes.TASK_PULL)
-                            .setAppInfo(App.AppInfoFetch.newBuilder()
-                                    .setApp(queriedAppInfo.getApp())
-                                    .addAppVersion(targetVersion)
-                                    .build()).build());
+                    .setTaskType(Registry.TaskRegistryTypes.TASK_PULL)
+                    .setAppInfo(App.AppInfoFetch.newBuilder()
+                            .setApp(queriedAppInfo.getApp())
+                            .addAppVersion(targetVersion)
+                            .build()).build());
 
-            if(pullResponse == null || pullResponse.getBlobId().isEmpty()) {
+            if (pullResponse == null || pullResponse.getBlobId().isEmpty()) {
                 continue;
             }
 
@@ -147,7 +147,7 @@ public class RegistryTask extends Task {
             String blobId = pullResponse.getBlobId();
             String downloadedBlob = FileDownloader.downloadFileFromRemote(repoHandler, blobId);
 
-            if(downloadedBlob.isEmpty()) {
+            if (downloadedBlob.isEmpty()) {
                 throw new IllegalStateException("Package download failed from: " + repoUrl);
             }
 

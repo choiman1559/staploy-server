@@ -22,6 +22,16 @@ public class GroupPersistent {
         return groupPersistentMutex.get(groupName);
     }
 
+    public boolean isGroupForAll() {
+        return groupName.equals(AdminConst.PREFIX_GROUP_ALL);
+    }
+
+    public void checkAndThrowGroupAll() {
+        if(isGroupForAll()) {
+            throw new IllegalArgumentException("group action for target `all` is prohibited");
+        }
+    }
+
     public String getGroupName() {
         return groupName;
     }
@@ -31,11 +41,13 @@ public class GroupPersistent {
     }
 
     public String createGroup() {
+        checkAndThrowGroupAll();
         Helpers.getPersistsHelper().getRedisCommands().sadd(AdminConst.SCHEME_GROUP_LIST, groupName);
         return groupName;
     }
 
     public String deleteGroup() {
+        checkAndThrowGroupAll();
         Helpers.getPersistsHelper().getRedisCommands().srem(AdminConst.SCHEME_GROUP_LIST, groupName);
         Helpers.getPersistsHelper().getRedisCommands().del(getPersistentGroupScheme());
         return groupName;
@@ -43,18 +55,25 @@ public class GroupPersistent {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean hasGroup() {
-        return Helpers.getPersistsHelper().getRedisCommands().sismember(AdminConst.SCHEME_GROUP_LIST, groupName);
+        return isGroupForAll() ||
+                Helpers.getPersistsHelper().getRedisCommands().sismember(AdminConst.SCHEME_GROUP_LIST, groupName);
     }
 
     public void addWorkers(List<String> workers) {
+        checkAndThrowGroupAll();
         Helpers.getPersistsHelper().getRedisCommands().sadd(getPersistentGroupScheme(), getParsedNameOrId(workers).toArray(new String[]{}));
     }
 
     public void removeWorkers(List<String> workers) {
+        checkAndThrowGroupAll();
         Helpers.getPersistsHelper().getRedisCommands().srem(getPersistentGroupScheme(), getParsedNameOrId(workers).toArray(new String[]{}));
     }
 
     public List<Protocol.WorkerInfo> getWorkerList() {
+        if(isGroupForAll()) {
+            return Helpers.getWorkerManager().getAllActiveSessions();
+        }
+
         ArrayList<Protocol.WorkerInfo> workerInfos = new ArrayList<>();
         for (String key : Helpers.getPersistsHelper().getRedisCommands().smembers(getPersistentGroupScheme())) {
             try {
