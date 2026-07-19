@@ -17,7 +17,6 @@ public class Argument {
 
     public String host;
     public boolean isDebug;
-    public String version;
     public String baseDir;
 
     public boolean enableRegistry;

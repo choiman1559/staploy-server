@@ -1,4 +1,4 @@
-package com.staploy.server.admin.pkg;
+package com.staploy.server.commons.blobs;
 
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.InitHelperModule;
@@ -59,9 +59,11 @@ public class CleanupBlobJob implements InitHelperModule {
             }
         }
 
-        Log.print("CleanBlobJob", String.format("Cleaned-up %d unused blob(s)!", blobList.size()));
-        for(String remainBlob : blobList.keySet()) {
-            Helpers.getFileRouteManager().removeBlob(remainBlob);
+        if(!blobList.isEmpty()) {
+            Log.print("CleanBlobJob", String.format("Cleaned-up %d unused blob(s)!", blobList.size()));
+            for(String remainBlob : blobList.keySet()) {
+                Helpers.getFileRouteManager().removeBlob(remainBlob);
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ package com.staploy.server.commons.service;
 import com.staploy.server.admin.AuditDispatcher;
 import com.staploy.server.admin.JwtCertManager;
 import com.staploy.server.admin.pkg.AppPersists;
-import com.staploy.server.admin.pkg.CleanupBlobJob;
+import com.staploy.server.commons.blobs.CleanupBlobJob;
 import com.staploy.server.commons.blobs.FileRouteManager;
 import com.staploy.server.commons.utils.PersistsHelper;
 import com.staploy.server.worker.WorkerManager;
