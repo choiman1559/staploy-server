@@ -11,6 +11,7 @@ import com.staploy.server.worker.WorkerProcess;
 import io.ktor.http.HttpStatusCode;
 import io.ktor.server.application.ApplicationCall;
 import io.ktor.server.websocket.DefaultWebSocketServerSession;
+import kotlin.io.FileSystemException;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +49,7 @@ public class Service {
             instance.processModels.put(ServiceConsts.CONN_TYPE_REGISTRY, new RegistryProcess.RegistryStub());
         }
 
+        instance.configureDirectories();
         instance.configureStaticModules();
         instance.configureUUID();
         Log.print(LogTAG, "Starting Staploy service instance, UUID: " + instance.serverUUID);
@@ -55,6 +57,28 @@ public class Service {
 
     private void configureStaticModules() {
         initHelperModules = Helpers.getInstance();
+    }
+
+    private void configureDirectories() throws FileSystemException {
+        String[] dirs = new String[]{
+                ServiceConsts.PATH_APPS_DIR,
+                ServiceConsts.PATH_BLOB_DIR,
+                ServiceConsts.PATH_CACHE_DIR,
+                ServiceConsts.PATH_REGISTRY_DIR
+        };
+
+        for(String dir : dirs) {
+            File dirFile = new File(argument.baseDir, dir);
+            if(dirFile.exists() && (dirFile.isFile() || !dirFile.canRead() || !dirFile.canWrite())) {
+                throw new FileSystemException(dirFile, null, "base folder cannot be accessed or not directory");
+            }
+
+            if(!dirFile.exists()) {
+                if(!dirFile.mkdirs()) {
+                    throw new FileSystemException(dirFile, null, "base folder cannot be created");
+                }
+            }
+        }
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -83,9 +107,9 @@ public class Service {
             }
         }
 
-        serverUUID = cachedUUId.isEmpty() ? UUID.randomUUID().toString() : cachedUUId;
+        serverUUID = cachedUUId == null || cachedUUId.isEmpty() ? UUID.randomUUID().toString() : cachedUUId;
         IOUtils.writeTo(file, String.format("%s%s", ServiceConsts.UUID_CONF_WARNING, serverUUID), true);
-        if (cachedUUId.isEmpty()) {
+        if (cachedUUId == null || cachedUUId.isEmpty()) {
             writeServerUUIDtoDB(serverUUID);
         }
     }

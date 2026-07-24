@@ -1,5 +1,7 @@
 package com.staploy.server.commons.service;
 
+import com.staploy.server.admin.AdminConst;
+
 public class ServiceConsts {
     public final static String API_ROUTE_SCHEMA = "/api/{version}/{connection_type}";
     public final static String CONN_TYPE_ADMIN = "admin";
@@ -8,6 +10,9 @@ public class ServiceConsts {
 
     public final static String PATH_BLOB_DIR = "/blob/";
     public final static String PATH_CACHE_DIR = "/cache/";
+    public final static String PATH_REGISTRY_DIR = "/registry/";
+    public final static String PATH_APPS_DIR = "/" + AdminConst.APP_PATH + "/";
+
     public final static String SCHEMA_BLOB_LIST = "$blob_list";
     public static final String BLOB_REQ_TYPE = "blob_req_type";
     public static final String BLOB_REQ_TYPE_UPLOAD = "type_upload";

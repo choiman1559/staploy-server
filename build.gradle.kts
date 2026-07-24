@@ -15,7 +15,7 @@ kotlin {
 }
 
 application {
-    mainClass = "com.staploy.ApplicationKt"
+    mainClass = "com.staploy.server.ApplicationKt"
 }
 
 sourceSets {
