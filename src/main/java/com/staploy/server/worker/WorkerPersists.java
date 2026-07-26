@@ -54,8 +54,8 @@ public class WorkerPersists {
     }
 
     public void updateWorkerInfo(Protocol.WorkerInfo workerInfo) {
-        persistsHelper.getRedisCommands().hsetnx(WorkerConst.SCHEMA_WORKER_INFO, workerUUID,
+        persistsHelper.getRedisCommands().hset(WorkerConst.SCHEMA_WORKER_INFO, workerUUID,
                 Base64.encode(workerInfo.toBuilder().clearInstalledApp().build().toByteArray()));
-        persistsHelper.getRedisCommands().hsetnx(WorkerConst.SCHEMA_WORKER_NAME, workerUUID, workerInfo.getWorkerName());
+        persistsHelper.getRedisCommands().hset(WorkerConst.SCHEMA_WORKER_NAME, workerUUID, workerInfo.getWorkerName());
     }
 }

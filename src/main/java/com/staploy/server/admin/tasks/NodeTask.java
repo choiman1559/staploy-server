@@ -6,7 +6,6 @@ import com.staploy.App;
 import com.staploy.Protocol;
 import com.staploy.Users;
 import com.staploy.server.admin.Task;
-import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.service.ServiceConsts;
 import com.staploy.server.packet.PacketWrapper;
@@ -15,7 +14,6 @@ import io.ktor.server.application.ApplicationCall;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Objects;
 
 public class NodeTask extends Task {
     @Override
@@ -30,13 +28,16 @@ public class NodeTask extends Task {
                     requestIds.add(workerInfo.getWorkerId());
                 }
 
+                HashSet<String> names = new HashSet<>();
                 for(String id : WorkerProcess.workerSocketSession.keySet()) {
                     if(requestIds.isEmpty() || requestIds.contains(id)) {
                         WorkerSession workerSession = getWorkerSessionById(id);
 
                         Protocol.WorkerInfo.Builder workerInfo = Protocol.WorkerInfo.newBuilder(workerSession.sessionInfo().getWorkerInfo());
-                        if(!Objects.equals(Helpers.getWorkerManager().getWorkerIdByName(workerInfo.getWorkerName()), id)) {
+                        if(names.contains(workerInfo.getWorkerName())) {
                             workerInfo.setWorkerName(workerInfo.getWorkerName() + " (Duplicated)");
+                        } else {
+                            names.add(workerInfo.getWorkerName());
                         }
                         workerPackets.add(Protocol.WorkerPacket.newBuilder().setWorkerInfo(workerInfo).build());
                     }
