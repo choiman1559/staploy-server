@@ -15,13 +15,42 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondFile
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 
 class FileProcess {
     companion object {
+
+        private val cacheLocks = ConcurrentHashMap<String, Mutex>()
+        private val binaryCache = Collections.synchronizedMap(
+            object : LinkedHashMap<String, ByteArray>(16, 0.75f, true) {
+                val MAX_ENTRIES = Service.getInstance().argument.maxBlobCacheEntities
+                override fun removeEldestEntry(eldest: Map.Entry<String, ByteArray>) =
+                    size > MAX_ENTRIES
+            }
+        )
+
+        suspend fun getCached(blobToken: String, file: File): ByteArray {
+            return binaryCache[blobToken] ?: run {
+                val mutex = cacheLocks.getOrPut(blobToken) { Mutex() }
+                mutex.withLock {
+                    binaryCache[blobToken] ?: run {
+                        val bytes = withContext(Dispatchers.IO) { file.readBytes() }
+                        binaryCache[blobToken] = bytes
+                        bytes
+                    }
+                }
+            }
+        }
+
         @JvmStatic
         suspend fun onReceiveMultiPart(applicationCall: ApplicationCall) {
             withContext(Dispatchers.IO) {
@@ -52,6 +81,7 @@ class FileProcess {
 
         @JvmStatic
         suspend fun onRequestDownload(applicationCall: ApplicationCall) {
+            val argument = Service.getInstance().argument
             val fileRouteManager = Helpers.getFileRouteManager()
 
             val blobToken = applicationCall.request.headers[ServiceConsts.BLOB_REQ_TYPE_DOWNLOAD]
@@ -71,7 +101,12 @@ class FileProcess {
                         ).toString()
                     )
                 }
-                applicationCall.respondFile(file)
+
+                if (!argument.useBlobCache || file.length() > argument.maxBlobCacheSize) {
+                    applicationCall.respondFile(file)
+                } else {
+                    getCached(blobToken, file).let { applicationCall.respondBytes(it) }
+                }
             } else {
                 Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("File not found", HttpStatusCode.NotFound, ""))
             }

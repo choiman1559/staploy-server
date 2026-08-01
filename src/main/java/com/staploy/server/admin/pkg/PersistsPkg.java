@@ -33,10 +33,10 @@ public class PersistsPkg {
     }
 
     @Nullable
-    public static String getPackageTokenId(Cpus.CpuArch cpuArch, App.AppInfoFetch appInfoFetch) {
+    public static String getPackageTokenId(Cpus.CpuArch cpuArch, App.AppInfo appInfo, App.Version version) {
         RedisCommands<String, String> redisCommands = Helpers.getPersistsHelper().getRedisCommands();
         return redisCommands.hget(
-                String.format(AdminConst.SCHEMA_PACKAGE_META, appInfoFetch.getApp().getAppName(), appInfoFetch.getAppVersion(0).getVersionName()),
+                String.format(AdminConst.SCHEMA_PACKAGE_META, appInfo.getAppName(), version.getVersionName()),
                 String.format(AdminConst.SCHEMA_PACKAGE_BLOB_TOKEN, cpuArch)
         );
     }

@@ -19,6 +19,10 @@ public class Argument {
     public boolean isDebug;
     public String baseDir;
 
+    public boolean useBlobCache = false;
+    public long maxBlobCacheSize = 65536;
+    public int maxBlobCacheEntities = 10;
+
     public boolean enableRegistry;
     public boolean allowPullNonPermit;
     public boolean allowPullAnonymous;
