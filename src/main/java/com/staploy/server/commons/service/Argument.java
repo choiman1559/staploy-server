@@ -20,7 +20,7 @@ public class Argument {
     public String baseDir;
 
     public boolean useBlobCache = false;
-    public long maxBlobCacheSize = 65536;
+    public long maxBlobCacheSize = 52428800;
     public int maxBlobCacheEntities = 10;
 
     public boolean enableRegistry;
