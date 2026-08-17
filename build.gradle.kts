@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.staploy"
-version = "0.0.1"
+version = "0.1.0"
 
 kotlin {
     jvmToolchain(24)
@@ -58,6 +58,7 @@ dependencies {
     implementation("io.ktor:ktor-server-default-headers:3.4.2")
     implementation("org.apache.commons:commons-compress:1.28.0")
     implementation("at.favre.lib:bcrypt:0.10.2")
+    implementation("io.github.milkdrinkers:javasemver:2.0.0")
 
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")

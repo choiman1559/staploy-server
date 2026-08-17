@@ -11,12 +11,12 @@ import com.staploy.server.admin.pkg.PersistsPkg;
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.service.ServiceConsts;
+import com.staploy.server.commons.utils.SemVersion;
 import com.staploy.server.packet.PacketWrapper;
 import com.staploy.server.worker.WorkerPersists;
 import io.ktor.server.application.ApplicationCall;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 public class DeployTask extends Task {
@@ -73,8 +73,7 @@ public class DeployTask extends Task {
                 List<App.Version> candidateVersions = Helpers.getAppPersists().getArchSupportVersion(appInfoFetch.getApp(), persistentWorker.getCpuArch());
                 if(!candidateVersions.isEmpty()) {
                     App.Version[] sortedVersions = candidateVersions.toArray(new App.Version[0]);
-                    Arrays.sort(sortedVersions, Comparator.comparing(App.Version::getVersionName));
-                    pushVersion = sortedVersions[sortedVersions.length - 1];
+                    pushVersion = Arrays.stream(sortedVersions).max(SemVersion::compare).get();
                 } else {
                     Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket(String.format("Application %s found, but any version to worker %s arch type (%s) not match",
                             appInfoFetch.getApp().getAppName(), workerInfo.getWorkerId(), persistentWorker.getCpuArch())));
