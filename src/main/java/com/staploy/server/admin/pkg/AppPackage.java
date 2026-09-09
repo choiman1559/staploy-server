@@ -246,6 +246,12 @@ public class AppPackage {
             case "riscv64" -> Cpus.CpuArch.riscv64;
             case "mipsel" -> Cpus.CpuArch.mipsel;
             case "mips64el" -> Cpus.CpuArch.mips64el;
+            case "mips" -> Cpus.CpuArch.mips;
+            case "mips64" -> Cpus.CpuArch.mips64;
+            case "ppc64" -> Cpus.CpuArch.ppc64;
+            case "ppc64le" -> Cpus.CpuArch.ppc64le;
+            case "s390x" -> Cpus.CpuArch.s390x;
+            case "loong64" -> Cpus.CpuArch.loong64;
             default -> throw new IllegalStateException("Unexpected value: " + tag);
         };
     }
