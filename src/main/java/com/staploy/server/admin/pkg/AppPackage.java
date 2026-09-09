@@ -127,6 +127,10 @@ public class AppPackage {
 
             for(TarArchiveEntry byArchMetadata : byArchEntries) {
                 Cpus.CpuArch cpuArch = getArchByTag(byArchMetadata.getName().split("/")[0]);
+
+                if(packageHeader.getShareOnly() && !outputArchives.containsKey(cpuArch)) {
+                    outputArchives.put(cpuArch, new ArchPackageBundle(cpuArch, getBaseVersionInfo()));
+                }
                 App.Version.Builder version = App.Version.newBuilder(outputArchives.get(cpuArch).getByArchVersionInfo());
 
                 try (InputStream is = tarFile.getInputStream(byArchMetadata)) {
