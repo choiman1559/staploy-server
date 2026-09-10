@@ -6,6 +6,7 @@ import com.staploy.Registry;
 import com.staploy.Users;
 import com.staploy.server.admin.Task;
 import com.staploy.server.admin.pkg.AppPackage;
+import com.staploy.server.admin.pkg.AppPersists;
 import com.staploy.server.commons.blobs.FileDownloader;
 import com.staploy.server.commons.blobs.FileRouteManager;
 import com.staploy.server.commons.service.Helpers;
@@ -115,7 +116,7 @@ public class RegistryTask extends Task {
 
         Registry.RegistryResponsePacket queriedPackages = queryPackages(registryRequestPacket);
         for (int i = 0; i < queriedPackages.getRepositoryUrlCount(); i += 1) {
-            String repoUrl = queriedPackages.getRepositoryUrl(0);
+            String repoUrl = queriedPackages.getRepositoryUrl(i);
             App.InstalledAppInfo queriedAppInfo = queriedPackages.getAppInfo(i);
 
             if (!queriedAppInfo.hasApp() || queriedAppInfo.getAvailableVersionCount() < 1) {
@@ -155,6 +156,13 @@ public class RegistryTask extends Task {
             String localBlobId = fileRouteManager.registerActualFile(packageDownload, false);
 
             try {
+                AppPersists appPersists = Helpers.getAppPersists();
+                App.AppInfo appInfo = registryRequestPacket.getAppInfo().getApp();
+
+                if (!appPersists.hasApp(appInfo.getAppName())) {
+                    appPersists.updateApp(appInfo);
+                }
+
                 AppPackage appPackage = AppPackage.createParser(packageDownload);
                 appPackage.parse();
                 appPackage.buildByArchPackage();
