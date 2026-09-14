@@ -12,7 +12,7 @@ import com.staploy.server.registry.RegistryConst
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
@@ -96,7 +96,7 @@ class RepoHandler {
     fun postRequest(registryRequestPacket: RegistryRequestPacket?): RegistryResponsePacket? {
         queryFromDb(true, packages = false)
         val responsePacket = runBlocking {
-            val response: HttpResponse = client.get(getApiUrl()) {
+            val response: HttpResponse = client.post(getApiUrl()) {
                 headers {
                     if(!repositoryToken.isNullOrEmpty()) {
                         append(HttpHeaders.Authorization, "Bearer $repositoryToken")

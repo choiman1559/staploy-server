@@ -1,26 +1,22 @@
 package com.staploy.server.admin.tasks;
 
-import com.staploy.Admin;
-import com.staploy.App;
-import com.staploy.Registry;
-import com.staploy.Users;
+import com.staploy.*;
 import com.staploy.server.admin.Task;
 import com.staploy.server.admin.pkg.AppPackage;
 import com.staploy.server.admin.pkg.AppPersists;
+import com.staploy.server.admin.pkg.PersistsPkg;
 import com.staploy.server.commons.blobs.FileDownloader;
 import com.staploy.server.commons.blobs.FileRouteManager;
 import com.staploy.server.commons.service.Helpers;
 import com.staploy.server.commons.service.Service;
 import com.staploy.server.commons.service.ServiceConsts;
+import com.staploy.server.commons.utils.SemVersion;
 import com.staploy.server.packet.PacketWrapper;
 import com.staploy.server.registry.pkg.RepoHandler;
 import io.ktor.server.application.ApplicationCall;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class RegistryTask extends Task {
     @Override
@@ -126,8 +122,11 @@ public class RegistryTask extends Task {
             App.Version targetVersion;
             if (registryRequestPacket.getAppInfo().getAppVersionCount() != 1) {
                 App.Version[] sortedVersions = queriedAppInfo.getAvailableVersionList().toArray(new App.Version[0]);
-                Arrays.sort(sortedVersions, Comparator.comparing(App.Version::getVersionName));
-                targetVersion = sortedVersions[sortedVersions.length - 1];
+                targetVersion = Arrays.stream(sortedVersions).max(SemVersion::compare).orElse(null);
+
+                if(targetVersion == null) {
+                    throw new IllegalStateException("Cannot find any candidate from remote repositories for app: " + queriedAppInfo.getApp().getAppName());
+                }
             } else {
                 targetVersion = queriedAppInfo.getAvailableVersion(0);
             }
@@ -157,15 +156,24 @@ public class RegistryTask extends Task {
 
             try {
                 AppPersists appPersists = Helpers.getAppPersists();
-                App.AppInfo appInfo = registryRequestPacket.getAppInfo().getApp();
-
-                if (!appPersists.hasApp(appInfo.getAppName())) {
-                    appPersists.updateApp(appInfo);
-                }
-
                 AppPackage appPackage = AppPackage.createParser(packageDownload);
                 appPackage.parse();
+
+                if (!appPersists.hasApp(appPackage.getAppInfo().getAppName())) {
+                    appPersists.updateApp(appPackage.getAppInfo());
+                }
+
+                PersistsPkg persistsPkg = PersistsPkg.create(appPackage.getAppInfo(), appPackage.getBaseVersionInfo());
+                if (persistsPkg.hasPackage()) {
+                    persistsPkg.removePackageBlob();
+                    Helpers.getAppPersists().removeVersion(appPackage.getAppInfo(), appPackage.getBaseVersionInfo());
+                }
+
                 appPackage.buildByArchPackage();
+                HashMap<Cpus.CpuArch, AppPackage.ArchPackageBundle> cpuArchBundles = appPackage.getOutputArchives();
+                cpuArchBundles.remove(Cpus.CpuArch.UNKNOWN);
+                persistsPkg.registerPackageBlob(cpuArchBundles);
+                Helpers.getAppPersists().updateVersion(appPackage.getAppInfo(), appPackage.getBaseVersionInfo(), appPackage.getAvailableArch());
 
                 Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK, Registry.RegistryResponsePacket.newBuilder()
                         .addAppInfo(App.InstalledAppInfo.newBuilder()
