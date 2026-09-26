@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.staploy.Admin;
 import com.staploy.Users;
 import com.staploy.server.admin.AdminConst;
+import com.staploy.server.admin.JwtCertManager;
 import com.staploy.server.admin.Task;
 import com.staploy.server.admin.UserPersistent;
 import com.staploy.server.commons.service.Helpers;
@@ -76,7 +77,7 @@ public class UserTask extends Task {
         userPersistent.updateMetadata(userMetadata.build());
     }
 
-    private void fetchAuditLogs(ApplicationCall applicationCall, Admin.RequestPacket requestPacket) throws Exception {
+    private void fetchAuditLogs(ApplicationCall applicationCall, @SuppressWarnings("unused") Admin.RequestPacket requestPacket) throws Exception {
         Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK,
                 Users.UserResponsePacket.newBuilder().addAllAuditData(Helpers.getAuditDispatcher().queryLogs()).build()));
     }
@@ -218,6 +219,12 @@ public class UserTask extends Task {
             return;
         }
 
+        JwtCertManager jwtCertManager = Helpers.getJwtCertManager();
+        if(!jwtCertManager.isKeyInitialized()) {
+            Service.replyPacket(applicationCall, PacketWrapper.makeErrorPacket("server jwtAuthPrivateKey not configured, login failed"));
+            return;
+        }
+
         Instant nowUtc = Instant.now();
         String jwtKey = JWT.create()
                 .withAudience(Service.getInstance().getServerUUID())
@@ -227,7 +234,7 @@ public class UserTask extends Task {
                 .withClaim(ServiceConsts.JWT_CLAIM_PERMISSION, userMetadata.getPermissions())
                 .withClaim(ServiceConsts.JWT_CLAIM_UUID, userPersistent.uuid())
                 .withExpiresAt(nowUtc.plus(365, ChronoUnit.DAYS))
-                .sign(Helpers.getJwtCertManager().getRsaKey());
+                .sign(jwtCertManager.getRsaKey());
 
         Users.UserLoginInfo loginToken = Users.UserLoginInfo.newBuilder().setUserName(userLoginInfo.getUserName()).setUserToken(jwtKey).build();
         Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK,

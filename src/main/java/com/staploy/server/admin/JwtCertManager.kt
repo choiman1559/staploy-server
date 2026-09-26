@@ -29,6 +29,10 @@ class JwtCertManager : InitHelperModule {
         return rsaKey
     }
 
+    fun isKeyInitialized(): Boolean {
+        return this::rsaKey.isInitialized
+    }
+
     private fun loadPrivateKey(filePath: String): RSAPrivateKey {
         val file = File(filePath)
         if (!file.exists()) {
@@ -101,7 +105,12 @@ class JwtCertManager : InitHelperModule {
                 val decodedJWT = JWT.decode(token)
 
                 try {
-                    JWT.require(Helpers.getJwtCertManager().getRsaKey())
+                    val jwtCert = Helpers.getJwtCertManager()
+                    if(jwtCert == null || !jwtCert.isKeyInitialized()) {
+                        throw SecurityException("The certificate does not contain a valid RSA Private Key.")
+                    }
+
+                    JWT.require(jwtCert.getRsaKey())
                         .withAudience(Service.getInstance().serverUUID)
                         .withIssuer(Service.getInstance().argument.host)
                         .build().verify(decodedJWT)
@@ -121,7 +130,7 @@ class JwtCertManager : InitHelperModule {
 
                 val userMetadata = userPersistent.getMetadata()
                 return AuthContext(
-                    userMetadata != null && (userMetadata.version == version && userMetadata.permissions == permission),
+                    (userMetadata != null) && ((userMetadata.version == version) && (userMetadata.permissions == permission)),
                     userMetadata
                 )
             }
