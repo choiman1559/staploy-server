@@ -60,6 +60,12 @@ public class RegistryTask extends Task {
                 registerManagement(applicationCall, userContext, Users.PermissionFlag.REGISTRY_PUSH);
                 handleManageTokenRepo(applicationCall, registryPacket);
             }
+
+            case LOCAL_REMOTE_PROXY -> {
+                Helpers.getAuditDispatcher().attachFlags(applicationCall, Users.PermissionFlag.REGISTRY_PULL);
+                registerManagement(applicationCall, userContext, Users.PermissionFlag.QUERY_ENDPOINT, false);
+                handleRegistryProxy(applicationCall, registryPacket);
+            }
         }
     }
 
@@ -260,5 +266,31 @@ public class RegistryTask extends Task {
         RepoHandler repoHandler = RepoHandler.fromUrl(registryRequestPacket.getRepositoryUrl(0));
         repoHandler.setAuthToken(registryRequestPacket.getBlobId());
         Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK));
+    }
+
+    private void handleRegistryProxy(ApplicationCall applicationCall, Registry.RegistryRequestPacket registryRequestPacket) throws Exception {
+        if (registryRequestPacket.getRepositoryUrlCount() != 2) {
+            throw new IllegalArgumentException("Repository argument invalid for proxy request");
+        }
+
+        RepoHandler originRepoHandler = RepoHandler.fromUrl(registryRequestPacket.getRepositoryUrl(0));
+        Registry.TaskRegistryTypes originTaskType = Registry.TaskRegistryTypes.forNumber(Integer.parseInt(registryRequestPacket.getRepositoryUrl(1)));
+
+        if (originTaskType == Registry.TaskRegistryTypes.LOCAL_REMOTE_PROXY) {
+            throw new IllegalThreadStateException("Proxy request taskType LOCAL_REMOTE_PROXY is not allowed recursively");
+        }
+
+        Registry.RegistryRequestPacket.Builder proxyRequest = Registry.RegistryRequestPacket.newBuilder();
+        proxyRequest
+                .setTaskType(originTaskType)
+                .setAppInfo(registryRequestPacket.getAppInfo())
+                .setBlobId(registryRequestPacket.getBlobId());
+
+        Registry.RegistryResponsePacket registryResponsePacket = originRepoHandler.postRequest(proxyRequest.build());
+        Service.replyPacket(applicationCall, PacketWrapper.makePacket(ServiceConsts.STATUS_OK,
+                Registry.RegistryResponsePacket.newBuilder(registryResponsePacket)
+                        .clearRepositoryUrl()
+                        .addAllRepositoryUrl(registryRequestPacket.getRepositoryUrlList())
+                        .build()));
     }
 }

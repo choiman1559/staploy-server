@@ -12,11 +12,11 @@ import com.staploy.server.registry.RegistryConst
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
-import io.ktor.http.headers
 import java.net.URI
 
 import kotlinx.coroutines.runBlocking
@@ -97,11 +97,10 @@ class RepoHandler {
         queryFromDb(true, packages = false)
         val responsePacket = runBlocking {
             val response: HttpResponse = client.post(getApiUrl()) {
-                headers {
-                    if(!repositoryToken.isNullOrEmpty()) {
-                        append(HttpHeaders.Authorization, "Bearer $repositoryToken")
-                    }
+                if(!repositoryToken.isNullOrEmpty()) {
+                    header(HttpHeaders.Authorization, "Bearer $repositoryToken")
                 }
+
                 setBody(JsonFormat.printer().print(Admin.RequestPacket.newBuilder()
                     .setTaskGroup(Admin.TaskGroup.TASK_REGISTRY)
                     .setRegistryTaskType(registryRequestPacket).build()))
@@ -117,7 +116,7 @@ class RepoHandler {
         if (responsePacket.status == ServiceConsts.STATUS_OK) {
             return responsePacket.registryResponse
         } else {
-            throw IllegalStateException(responsePacket.errorCause)
+            throw IllegalStateException("Remote threw => " + responsePacket.errorCause)
         }
     }
 
